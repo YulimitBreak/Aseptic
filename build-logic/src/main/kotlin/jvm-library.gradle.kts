@@ -5,3 +5,7 @@ plugins {
 kotlin {
     jvmToolchain(11)
 }
+
+tasks.withType<Test> {
+    useJUnitPlatform()
+}
