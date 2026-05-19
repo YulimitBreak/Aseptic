@@ -1,0 +1,36 @@
+build:
+  maxIssues: 0
+
+complexity:
+  LongMethod:
+    threshold: 60
+  LargeClass:
+    threshold: 600
+
+naming:
+  MatchingDeclarationName:
+    active: false # is overlapping with a rule from Formatting
+
+formatting:
+  NoWildcardImports:
+    active: false # is overlapping
+
+style:
+  NewLineAtEndOfFile:
+    active: false # is overlapping with a rule from Formatting
+  MaxLineLength:
+    active: false # is overlapping with a rule from Formatting
+  ModifierOrder:
+    active: false # is overlapping with a rule from Formatting
+  ReturnCount:
+    active: false # often is necessary
+  WildcardImport:
+    active: true
+    excludes: [ '**/test/**', '**/androidTest/**' ]
+    excludeImports:
+      - 'java.util.*'
+      - 'org.junit.Assert.*'
+
+empty-blocks:
+  EmptyClassBlock:
+    active: false # is overlapping with a rule from Formatting
