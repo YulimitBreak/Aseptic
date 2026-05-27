@@ -25,7 +25,7 @@ jobs:
         run: ./gradlew :core:jvmTest :processor:test
 
       - name: Publish test results
-        if: always() && hashFiles('**/build/test-results/**/*.xml') != ''
+        if: always()
         uses: dorny/test-reporter@v1
         with:
           name: Test Results
