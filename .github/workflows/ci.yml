@@ -26,6 +26,7 @@ jobs:
 
       - name: Publish test results
         if: always()
+        continue-on-error: true
         uses: dorny/test-reporter@v1
         with:
           name: Test Results
@@ -59,7 +60,8 @@ jobs:
         run: ./gradlew detekt
 
       - name: Upload SARIF to Code Scanning
-        if: always() && hashFiles('build/reports/detekt/detekt.sarif') != ''
+        if: always()
+        continue-on-error: true
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: build/reports/detekt/detekt.sarif
