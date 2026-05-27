@@ -1,3 +1,3 @@
 package io.github.yulimitbreak.aseptic.schema.fields
 
-class MessageFieldDeclaration<T> : FieldDeclaration<T>
+class MessageFieldDeclaration<T> internal constructor() : FieldDeclaration<T>
