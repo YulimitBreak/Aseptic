@@ -11,3 +11,7 @@ kotlin {
         }
     }
 }
+
+tasks.withType<Test> {
+    systemProperty("kotest.framework.config.fqn", "io.github.yulimitbreak.aseptic.GlobalKotestConfig")
+}

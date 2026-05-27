@@ -16,9 +16,10 @@ detekt-formatting    = { module = "io.gitlab.arturbosch.detekt:detekt-formatting
 detekt-gradle-plugin = { module = "io.gitlab.arturbosch.detekt:detekt-gradle-plugin", version.ref = "detekt" }
 
 # Testing
-kotest-engine = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
-kotest-assertions = { module = "io.kotest:kotest-assertions-core", version.ref = "kotest" }
-kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
+kotest-engine       = { module = "io.kotest:kotest-framework-engine", version.ref = "kotest" }
+kotest-assertions   = { module = "io.kotest:kotest-assertions-core",  version.ref = "kotest" }
+kotest-property     = { module = "io.kotest:kotest-property",         version.ref = "kotest" }
+kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5",   version.ref = "kotest" }
 kctfork-core = { module = "dev.zacsweers.kctfork:core", version.ref = "kctfork" }
 kctfork-ksp = { module = "dev.zacsweers.kctfork:ksp", version.ref = "kctfork" }
 
