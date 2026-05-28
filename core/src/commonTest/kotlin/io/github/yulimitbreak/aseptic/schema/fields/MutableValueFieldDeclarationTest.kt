@@ -9,17 +9,17 @@ import io.kotest.matchers.shouldBe
 class MutableValueFieldDeclarationTest : BehaviorSpec() {
 
     init {
-        Given("a mutable field with initial value 0") {
+        Given("a mutable Int field") {
             val declaration = MutableValueFieldDeclaration(0)
 
-            Then("initial value is 0") {
+            Then("initial value is preserved") {
                 val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                 state.value shouldBe 0
                 state.flow.value shouldBe 0
             }
 
-            When("updated once to 42") {
-                Then("value and flow reflect 42") {
+            When("updated once") {
+                Then("value and flow reflect the new value") {
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                         .asUpdatable<Int, (Int) -> Int>()
                     state.locked { update { 42 } }
@@ -28,8 +28,8 @@ class MutableValueFieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("+1 is applied three times") {
-                Then("value is 3") {
+            When("the same transform is applied multiple times") {
+                Then("value reflects the accumulated result") {
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                         .asUpdatable<Int, (Int) -> Int>()
                     repeat(3) { state.locked { update { it + 1 } } }
@@ -51,17 +51,17 @@ class MutableValueFieldDeclarationTest : BehaviorSpec() {
             }
         }
 
-        Given("a mutable field with a list as initial value") {
+        Given("a mutable List field") {
             val declaration = MutableValueFieldDeclaration(listOf("a", "b"))
 
-            Then("initial value is the provided list") {
+            Then("initial value is preserved") {
                 val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                 state.value shouldBe listOf("a", "b")
                 state.flow.value shouldBe listOf("a", "b")
             }
 
             When("an item is appended") {
-                Then("new list is reflected") {
+                Then("value and flow reflect the updated list") {
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                         .asUpdatable<List<String>, (List<String>) -> List<String>>()
                     state.locked { update { it + "c" } }

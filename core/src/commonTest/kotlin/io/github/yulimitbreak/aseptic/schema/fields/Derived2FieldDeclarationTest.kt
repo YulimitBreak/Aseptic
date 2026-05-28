@@ -16,12 +16,12 @@ class Derived2FieldDeclarationTest : BehaviorSpec() {
     init {
         coroutineTestScope = true
 
-        Given("a derived field that sums two Int sources (initial 3 and 7)") {
+        Given("a derived field combining two Int sources with a sum") {
             val decl1 = MutableValueFieldDeclaration(3)
             val decl2 = MutableValueFieldDeclaration(7)
             val declaration = Derived2FieldDeclaration(decl1, decl2) { a, b -> a + b }
 
-            Then("initial value is 3 + 7 = 10") {
+            Then("initial value is computed from both sources") {
                 val scope = CoroutineScope(coroutineContext + Job())
                 val state = declaration.convert(
                     flowMapWith(decl1 to MutableStateFlow(3), decl2 to MutableStateFlow(7)),
@@ -32,8 +32,8 @@ class Derived2FieldDeclarationTest : BehaviorSpec() {
                 scope.cancel()
             }
 
-            When("source1 updates to 10") {
-                Then("derived value is 10 + 7 = 17 (uses latest source2)") {
+            When("source1 updates") {
+                Then("derived reflects latest source1") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val flow1 = MutableStateFlow(3)
                     val flow2 = MutableStateFlow(7)
@@ -45,8 +45,8 @@ class Derived2FieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("source2 updates to 100") {
-                Then("derived value is 3 + 100 = 103 (uses latest source1)") {
+            When("source2 updates") {
+                Then("derived reflects latest source2") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val flow1 = MutableStateFlow(3)
                     val flow2 = MutableStateFlow(7)
@@ -78,7 +78,7 @@ class Derived2FieldDeclarationTest : BehaviorSpec() {
             val decl2 = MutableValueFieldDeclaration("bar")
             val declaration = Derived2FieldDeclaration(decl1, decl2) { a, b -> "$a$b" }
 
-            Then("initial value is foobar") {
+            Then("initial value is computed from both sources") {
                 val scope = CoroutineScope(coroutineContext + Job())
                 val state = declaration.convert(
                     flowMapWith(decl1 to MutableStateFlow("foo"), decl2 to MutableStateFlow("bar")),

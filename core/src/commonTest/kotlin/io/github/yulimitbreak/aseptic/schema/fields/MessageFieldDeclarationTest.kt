@@ -3,6 +3,8 @@
 package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.asUpdatable
+import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.dequeue
+import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.enqueue
 import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.locked
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
@@ -33,8 +35,8 @@ class MessageFieldDeclarationTest : BehaviorSpec() {
                 Then("flow value is that message") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), scope)
-                        .asUpdatable<String?, String>()
-                    state.locked { update("hello") }
+                        .asUpdatable<String?, MessageFieldDeclaration.Update<String>>()
+                    state.locked { enqueue("hello") }
                     testCoroutineScheduler.advanceUntilIdle()
                     state.flow.value shouldBe "hello"
                     scope.cancel()
@@ -45,25 +47,52 @@ class MessageFieldDeclarationTest : BehaviorSpec() {
                 Then("flow value is the first message (front of queue)") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), scope)
-                        .asUpdatable<String?, String>()
-                    state.locked { update("first") }
-                    state.locked { update("second") }
+                        .asUpdatable<String?, MessageFieldDeclaration.Update<String>>()
+                    state.locked { enqueue("first") }
+                    state.locked { enqueue("second") }
                     testCoroutineScheduler.advanceUntilIdle()
                     state.flow.value shouldBe "first"
                     scope.cancel()
                 }
             }
 
-            When("three messages are enqueued") {
-                Then("flow value is still the first message") {
+            When("first message is dequeued after two enqueues") {
+                Then("flow value becomes the second message") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), scope)
-                        .asUpdatable<String?, String>()
-                    state.locked { update("a") }
-                    state.locked { update("b") }
-                    state.locked { update("c") }
+                        .asUpdatable<String?, MessageFieldDeclaration.Update<String>>()
+                    state.locked { enqueue("first") }
+                    state.locked { enqueue("second") }
                     testCoroutineScheduler.advanceUntilIdle()
-                    state.flow.value shouldBe "a"
+                    state.locked { dequeue() }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    state.flow.value shouldBe "second"
+                    scope.cancel()
+                }
+            }
+
+            When("all messages are dequeued") {
+                Then("flow value returns to null") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val state = declaration.convert(StateContainerBuilder.FlowMap(), scope)
+                        .asUpdatable<String?, MessageFieldDeclaration.Update<String>>()
+                    state.locked { enqueue("only") }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    state.locked { dequeue() }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    state.flow.value.shouldBeNull()
+                    scope.cancel()
+                }
+            }
+
+            When("dequeue called on empty queue") {
+                Then("flow value remains null (no crash)") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val state = declaration.convert(StateContainerBuilder.FlowMap(), scope)
+                        .asUpdatable<String?, MessageFieldDeclaration.Update<String>>()
+                    state.locked { dequeue() }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    state.flow.value.shouldBeNull()
                     scope.cancel()
                 }
             }
@@ -79,14 +108,17 @@ class MessageFieldDeclarationTest : BehaviorSpec() {
                 scope.cancel()
             }
 
-            When("integer message enqueued") {
-                Then("flow value is that integer") {
+            When("integer message enqueued then dequeued") {
+                Then("flow value returns to null") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), scope)
-                        .asUpdatable<Int?, Int>()
-                    state.locked { update(99) }
+                        .asUpdatable<Int?, MessageFieldDeclaration.Update<Int>>()
+                    state.locked { enqueue(99) }
                     testCoroutineScheduler.advanceUntilIdle()
                     state.flow.value shouldBe 99
+                    state.locked { dequeue() }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    state.flow.value.shouldBeNull()
                     scope.cancel()
                 }
             }

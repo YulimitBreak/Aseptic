@@ -16,13 +16,13 @@ class Derived3FieldDeclarationTest : BehaviorSpec() {
     init {
         coroutineTestScope = true
 
-        Given("a derived field that sums three Int sources (initial 1, 2, 3)") {
+        Given("a derived field combining three Int sources with a sum") {
             val decl1 = MutableValueFieldDeclaration(1)
             val decl2 = MutableValueFieldDeclaration(2)
             val decl3 = MutableValueFieldDeclaration(3)
             val declaration = Derived3FieldDeclaration(decl1, decl2, decl3) { a, b, c -> a + b + c }
 
-            Then("initial value is 1 + 2 + 3 = 6") {
+            Then("initial value is computed from all sources") {
                 val scope = CoroutineScope(coroutineContext + Job())
                 val state = declaration.convert(
                     flowMapWith(
@@ -37,8 +37,8 @@ class Derived3FieldDeclarationTest : BehaviorSpec() {
                 scope.cancel()
             }
 
-            When("source1 updates to 10") {
-                Then("derived value is 10 + 2 + 3 = 15") {
+            When("source1 updates") {
+                Then("derived reflects latest source1") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val f1 = MutableStateFlow(1)
                     val f2 = MutableStateFlow(2)
@@ -51,8 +51,8 @@ class Derived3FieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("source2 updates to 20") {
-                Then("derived value is 1 + 20 + 3 = 24") {
+            When("source2 updates") {
+                Then("derived reflects latest source2") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val f1 = MutableStateFlow(1)
                     val f2 = MutableStateFlow(2)
@@ -65,8 +65,8 @@ class Derived3FieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("source3 updates to 30") {
-                Then("derived value is 1 + 2 + 30 = 33") {
+            When("source3 updates") {
+                Then("derived reflects latest source3") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val f1 = MutableStateFlow(1)
                     val f2 = MutableStateFlow(2)

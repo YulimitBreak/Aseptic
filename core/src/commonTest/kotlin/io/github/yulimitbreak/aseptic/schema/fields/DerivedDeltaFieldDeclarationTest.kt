@@ -16,7 +16,7 @@ class DerivedDeltaFieldDeclarationTest : BehaviorSpec() {
     init {
         coroutineTestScope = true
 
-        Given("a delta field tracking Int changes, initial source 10, initial result 0") {
+        Given("a delta field tracking Int source changes") {
             val sourceDecl = MutableValueFieldDeclaration(10)
 
             Then("initial flow value equals initial param — mapper not called") {
@@ -35,8 +35,8 @@ class DerivedDeltaFieldDeclarationTest : BehaviorSpec() {
                 scope.cancel()
             }
 
-            When("source changes from 10 to 15 (delta +5)") {
-                Then("result is 5 and mapper receives correct args") {
+            When("source updates once") {
+                Then("mapper receives correct arguments") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     data class Call(val oldSrc: Int, val newSrc: Int, val oldResult: Int)
                     val calls = mutableListOf<Call>()
@@ -58,8 +58,8 @@ class DerivedDeltaFieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("source changes 10 → 15 → 12") {
-                Then("second call receives previous source and result, final value is 2") {
+            When("source updates twice") {
+                Then("mapper state threads across calls") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     data class Call(val oldSrc: Int, val newSrc: Int, val oldResult: Int)
                     val calls = mutableListOf<Call>()
@@ -84,7 +84,7 @@ class DerivedDeltaFieldDeclarationTest : BehaviorSpec() {
             }
 
             When("source changes multiple times") {
-                Then("accumulated result equals total delta from initial source") {
+                Then("deltas accumulate correctly") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val sourceFlow = MutableStateFlow(10)
                     val declaration = DerivedDeltaFieldDeclaration(sourceDecl, initial = 0) { old, new, prev ->
@@ -105,7 +105,7 @@ class DerivedDeltaFieldDeclarationTest : BehaviorSpec() {
             }
         }
 
-        Given("a delta field accumulating state transition strings") {
+        Given("a delta field accumulating String source transitions") {
             val sourceDecl = MutableValueFieldDeclaration("idle")
 
             Then("initial result is the provided initial string") {
@@ -120,8 +120,8 @@ class DerivedDeltaFieldDeclarationTest : BehaviorSpec() {
                 scope.cancel()
             }
 
-            When("source transitions idle → loading → done") {
-                Then("result records both transitions in order") {
+            When("source transitions through multiple states") {
+                Then("result records each transition in order") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val sourceFlow = MutableStateFlow("idle")
                     val declaration = DerivedDeltaFieldDeclaration(sourceDecl, initial = "") { old, new, prev ->

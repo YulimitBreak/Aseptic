@@ -16,10 +16,10 @@ class Derived1FieldDeclarationTest : BehaviorSpec() {
     init {
         coroutineTestScope = true
 
-        Given("a derived field that doubles an Int source (initial 3)") {
+        Given("a derived field mapping an Int source with a doubling function") {
             val sourceDecl = MutableValueFieldDeclaration(3)
 
-            Then("initial value is mapper(source initial) = 6") {
+            Then("mapper is applied to initial value") {
                 val scope = CoroutineScope(coroutineContext + Job())
                 val sourceFlow = MutableStateFlow(3)
                 val state = Derived1FieldDeclaration(sourceDecl) { it * 2 }
@@ -29,8 +29,8 @@ class Derived1FieldDeclarationTest : BehaviorSpec() {
                 scope.cancel()
             }
 
-            When("source updates to 10") {
-                Then("derived value becomes 20") {
+            When("source updates") {
+                Then("derived reflects the new source value") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val sourceFlow = MutableStateFlow(3)
                     val state = Derived1FieldDeclaration(sourceDecl) { it * 2 }
@@ -58,10 +58,10 @@ class Derived1FieldDeclarationTest : BehaviorSpec() {
             }
         }
 
-        Given("a derived field that maps String to its length") {
+        Given("a derived field mapping a String source to its length") {
             val sourceDecl = MutableValueFieldDeclaration("hello")
 
-            Then("initial value is 5") {
+            Then("mapper is applied to initial value") {
                 val scope = CoroutineScope(coroutineContext + Job())
                 val sourceFlow = MutableStateFlow("hello")
                 val state = Derived1FieldDeclaration(sourceDecl) { it.length }

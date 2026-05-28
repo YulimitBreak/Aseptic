@@ -9,17 +9,17 @@ import io.kotest.matchers.shouldBe
 class ReducedFieldDeclarationTest : BehaviorSpec() {
 
     init {
-        Given("a counter field (initial 0, reducer adds the update)") {
+        Given("a reduced Int field with an additive reducer") {
             val declaration = ReducedFieldDeclaration(0) { old, update: Int -> old + update }
 
-            Then("initial value is 0") {
+            Then("initial value is preserved") {
                 val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                 state.value shouldBe 0
                 state.flow.value shouldBe 0
             }
 
-            When("updated with 5") {
-                Then("value is 5") {
+            When("updated once") {
+                Then("reducer is applied") {
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                         .asUpdatable<Int, Int>()
                     state.locked { update(5) }
@@ -28,8 +28,8 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("updated with 3, then 7") {
-                Then("value is 10 (updates fold correctly)") {
+            When("updated multiple times sequentially") {
+                Then("all updates are folded") {
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                         .asUpdatable<Int, Int>()
                     state.locked { update(3) }
@@ -39,8 +39,8 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("updated ten times with 1") {
-                Then("value is 10") {
+            When("updated repeatedly with the same value") {
+                Then("all updates are accumulated") {
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                         .asUpdatable<Int, Int>()
                     repeat(10) { state.locked { update(1) } }
@@ -50,7 +50,7 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
             }
         }
 
-        Given("a list-append field (initial empty, reducer appends item)") {
+        Given("a reduced List field with an append reducer") {
             val declaration = ReducedFieldDeclaration(emptyList<String>()) { old, item: String -> old + item }
 
             Then("initial value is empty list") {
@@ -72,15 +72,15 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
             }
         }
 
-        Given("a reducer that records the old value it received") {
+        Given("a reduced Int field that records each old value seen by the reducer") {
             val seenOldValues = mutableListOf<Int>()
             val declaration = ReducedFieldDeclaration(0) { old, update: Int ->
                 seenOldValues += old
                 old + update
             }
 
-            When("updated with 1, 2, 3 sequentially") {
-                Then("reducer received old values 0, 1, 3 in order") {
+            When("updated sequentially") {
+                Then("reducer receives the previous accumulated value on each call") {
                     val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
                         .asUpdatable<Int, Int>()
                     state.locked { update(1) }

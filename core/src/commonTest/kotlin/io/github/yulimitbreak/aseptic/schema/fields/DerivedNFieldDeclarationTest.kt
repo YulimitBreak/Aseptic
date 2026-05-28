@@ -16,11 +16,11 @@ class DerivedNFieldDeclarationTest : BehaviorSpec() {
     init {
         coroutineTestScope = true
 
-        Given("a derived-N field summing four Int sources (initial 1, 2, 3, 4)") {
+        Given("a derived-N field combining multiple Int sources with a sum") {
             val decls = List(4) { MutableValueFieldDeclaration(it + 1) }
             val declaration = DerivedNFieldDeclaration(decls) { it.sum() }
 
-            Then("initial value is 1 + 2 + 3 + 4 = 10") {
+            Then("initial value is computed from all sources") {
                 val scope = CoroutineScope(coroutineContext + Job())
                 val flows = List(4) { MutableStateFlow(it + 1) }
                 val state = declaration.convert(flowMapWith(decls, flows), scope)
@@ -29,8 +29,8 @@ class DerivedNFieldDeclarationTest : BehaviorSpec() {
                 scope.cancel()
             }
 
-            When("first source updates to 10") {
-                Then("derived is 10 + 2 + 3 + 4 = 19") {
+            When("the first source updates") {
+                Then("derived reflects the updated first source") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val flows = List(4) { MutableStateFlow(it + 1) }
                     val state = declaration.convert(flowMapWith(decls, flows), scope)
@@ -41,8 +41,8 @@ class DerivedNFieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("last source updates to 40") {
-                Then("derived is 1 + 2 + 3 + 40 = 46") {
+            When("the last source updates") {
+                Then("derived reflects the updated last source") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val flows = List(4) { MutableStateFlow(it + 1) }
                     val state = declaration.convert(flowMapWith(decls, flows), scope)
@@ -53,8 +53,8 @@ class DerivedNFieldDeclarationTest : BehaviorSpec() {
                 }
             }
 
-            When("all sources set to 5") {
-                Then("derived is 20") {
+            When("all sources update to the same value") {
+                Then("derived is recomputed from all updated sources") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val flows = List(4) { MutableStateFlow(it + 1) }
                     val state = declaration.convert(flowMapWith(decls, flows), scope)
@@ -66,7 +66,7 @@ class DerivedNFieldDeclarationTest : BehaviorSpec() {
             }
         }
 
-        Given("a derived-N field joining four String sources in declaration order") {
+        Given("a derived-N field joining multiple String sources in declaration order") {
             val decls = List(4) { MutableValueFieldDeclaration(('a' + it).toString()) }
             val declaration = DerivedNFieldDeclaration(decls) { it.joinToString("") }
 
@@ -78,8 +78,8 @@ class DerivedNFieldDeclarationTest : BehaviorSpec() {
                 scope.cancel()
             }
 
-            When("second source changes to X") {
-                Then("derived is aXcd") {
+            When("a source updates") {
+                Then("source position is preserved") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val flows = List(4) { MutableStateFlow(('a' + it).toString()) }
                     val state = declaration.convert(flowMapWith(decls, flows), scope)

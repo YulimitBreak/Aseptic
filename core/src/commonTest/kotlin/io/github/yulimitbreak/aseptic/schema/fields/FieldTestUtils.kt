@@ -31,4 +31,12 @@ internal object FieldTestUtils {
         lock()
         try { block() } finally { unlock() }
     }
+
+    fun <T> UpdatableFieldState<T?, MessageFieldDeclaration.Update<T>>.enqueue(message: T) {
+        update(MessageFieldDeclaration.Update.Enqueue(message))
+    }
+
+    fun <T> UpdatableFieldState<T?, MessageFieldDeclaration.Update<T>>.dequeue() {
+        update(MessageFieldDeclaration.Update.Dequeue)
+    }
 }

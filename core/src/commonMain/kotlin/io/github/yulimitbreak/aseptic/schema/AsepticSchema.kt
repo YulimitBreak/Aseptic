@@ -145,7 +145,7 @@ abstract class AsepticSchema {
      *
      * TODO update KDoc when we finalize a way to access them properly once processor is done
      */
-    protected fun <T> message(): MessageFieldDeclaration<T> =
+    protected fun <T : Any> message(): MessageFieldDeclaration<T> =
         MessageFieldDeclaration()
 
     /**
