@@ -1,5 +1,12 @@
 package io.github.yulimitbreak.aseptic.schema.fields
 
+import io.github.yulimitbreak.aseptic.state.FieldState
+import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
+import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+
 /**
  * Declaration of a mutable field whose value is set directly by operations.
  *
@@ -12,4 +19,20 @@ package io.github.yulimitbreak.aseptic.schema.fields
 class MutableValueFieldDeclaration<T> internal constructor(
     /** The value the field holds before any update is applied. */
     internal val initial: T,
-) : FieldDeclaration<T>
+) : FieldDeclaration<T>() {
+    override fun convert(
+        flows: StateContainerBuilder.FlowMap,
+        coroutineScope: CoroutineScope
+    ): FieldState<T> = State(initial)
+
+    private class State<T>(
+        initial: T
+    ) : UpdatableFieldState<T, (T) -> T>() {
+
+        override fun doUpdate(update: (T) -> T) {
+            flow.update(update)
+        }
+
+        override val flow = MutableStateFlow(initial)
+    }
+}
