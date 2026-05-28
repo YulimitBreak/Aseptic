@@ -10,6 +10,7 @@ dependencies {
 
     testImplementation(libs.kotest.engine)
     testImplementation(libs.kotest.assertions)
+    testImplementation(libs.kotest.property)
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kctfork.core)
     testImplementation(libs.kctfork.ksp)

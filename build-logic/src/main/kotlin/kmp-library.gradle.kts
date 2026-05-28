@@ -18,6 +18,7 @@ kotlin {
             implementation(kotlin("test"))
             implementation(libs.kotest.engine)
             implementation(libs.kotest.assertions)
+            implementation(libs.kotest.property)
         }
         jvmTest.dependencies {
             implementation(libs.kotest.runner.junit5)
