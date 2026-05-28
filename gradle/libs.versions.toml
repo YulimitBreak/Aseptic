@@ -20,6 +20,7 @@ kotest-engine       = { module = "io.kotest:kotest-framework-engine", version.re
 kotest-assertions   = { module = "io.kotest:kotest-assertions-core",  version.ref = "kotest" }
 kotest-property     = { module = "io.kotest:kotest-property",         version.ref = "kotest" }
 kotest-runner-junit5 = { module = "io.kotest:kotest-runner-junit5",   version.ref = "kotest" }
+kotlinxCoroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kctfork-core = { module = "dev.zacsweers.kctfork:core", version.ref = "kctfork" }
 kctfork-ksp = { module = "dev.zacsweers.kctfork:ksp", version.ref = "kctfork" }
 

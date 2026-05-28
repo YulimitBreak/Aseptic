@@ -14,4 +14,5 @@ dependencies {
     testImplementation(libs.kotest.runner.junit5)
     testImplementation(libs.kctfork.core)
     testImplementation(libs.kctfork.ksp)
+    testImplementation(libs.kotlinxCoroutines.test)
 }
