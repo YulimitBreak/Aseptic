@@ -6,6 +6,8 @@ complexity:
     threshold: 60
   LargeClass:
     threshold: 600
+  LongParameterList:
+    active: false
 
 naming:
   MatchingDeclarationName:
@@ -14,6 +16,9 @@ naming:
 formatting:
   NoWildcardImports:
     active: false # is overlapping
+    excludes: [ '**/test/**' ]
+    excludeImports:
+      - 'java.util.*'
 
 style:
   NewLineAtEndOfFile:
@@ -25,11 +30,7 @@ style:
   ReturnCount:
     active: false # often is necessary
   WildcardImport:
-    active: true
-    excludes: [ '**/test/**', '**/androidTest/**' ]
-    excludeImports:
-      - 'java.util.*'
-      - 'org.junit.Assert.*'
+    active: false # is overlapping
 
 empty-blocks:
   EmptyClassBlock:
