@@ -29,12 +29,13 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
 
     private val flowMap = FlowMap()
 
+    private val uiFields = mutableSetOf<String>()
+
     /**
      * Registers a non-field schema member as a static (never-changing) field.
      *
      * Used for schema constructor parameters and plain `val` members that are referenced by
-     * derived fields. The value is wrapped in a lazy [MutableStateFlow] so it can be looked up
-     * via [FlowMap], but it is never updated at runtime.
+     * derived fields.
      */
     fun <T> addStaticField(name: String, value: T) {
         fields[name] = StaticFieldState(value)
@@ -46,15 +47,17 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
      * Calls [FieldDeclaration.convert] with the current [FlowMap] (so derived fields can
      * resolve source flows) and the shared [coroutineScope] (for `stateIn` sharing). If the
      * resulting state is [UpdatableFieldState], the field name is appended to [lockingOrder].
+     * Setting [uiVisible] as true adds the dependency of UI mapper on this field
      * Finally, the new flow is added to [FlowMap] so subsequent fields can use it as a source.
      */
-    fun <T> addField(name: String, field: FieldDeclaration<T>) {
+    fun <T> addField(name: String, uiVisible: Boolean, field: FieldDeclaration<T>) {
         val state = field.convert(flowMap, coroutineScope)
         fields[name] = state
         if (state is UpdatableFieldState<*, *>) {
             lockingOrder += name
         }
         flowMap[field] = state.flow
+        if (uiVisible) uiFields += name
     }
 
     fun build(): StateContainer {
