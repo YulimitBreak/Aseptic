@@ -61,3 +61,14 @@ annotation class Operation(
     val named: String = "",
     val dispatchPolicy: DispatchPolicy = DispatchPolicy.CONCURRENT,
 )
+
+/**
+ * Marks code to be used only from generated code (that declares OptIn),
+ * users should not use these directly, as their functioning hinges on internal conventions
+ * that are guaranteed with generated code.
+ */
+@RequiresOptIn(
+    message = "Internal Aseptic API. Do not use directly — for generated code only.",
+    level = RequiresOptIn.Level.ERROR
+)
+annotation class AsepticInternal

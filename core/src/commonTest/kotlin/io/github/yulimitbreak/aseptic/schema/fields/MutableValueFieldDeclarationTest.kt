@@ -1,3 +1,5 @@
+@file:OptIn(io.github.yulimitbreak.aseptic.AsepticInternal::class)
+
 package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.asUpdatable

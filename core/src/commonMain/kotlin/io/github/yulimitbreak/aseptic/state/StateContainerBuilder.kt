@@ -1,10 +1,12 @@
 package io.github.yulimitbreak.aseptic.state
 
+import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
+@AsepticInternal
 class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
 
     private val fields = mutableMapOf<String, FieldState<*>>()

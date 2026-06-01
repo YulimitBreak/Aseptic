@@ -1,4 +1,4 @@
-@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, io.github.yulimitbreak.aseptic.AsepticInternal::class)
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
