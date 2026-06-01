@@ -21,10 +21,6 @@ internal class ImmutableQueue<T> private constructor(
 
     constructor() : this(null, null)
 
-    constructor(iterable: Iterable<T>) : this(
-        outNode = directNodeFromList(iterable.toList()),
-    )
-
     val next: T? = outNode?.head
 
     val size: Int by lazy {
@@ -54,15 +50,6 @@ internal class ImmutableQueue<T> private constructor(
             null,
             Node(value, null)
         )
-    }
-
-    operator fun plus(other: Iterable<T>): ImmutableQueue<T> = if (outNode != null) {
-        ImmutableQueue(
-            inNode = reverseNodeFromIterable(other, inNode),
-            outNode = outNode
-        )
-    } else {
-        ImmutableQueue(other)
     }
 
     /**
@@ -111,21 +98,4 @@ internal class ImmutableQueue<T> private constructor(
         this.fold(17) { acc, value ->
             acc * 31 + value.hashCode()
         }
-
-    companion object {
-        private fun <T> reverseNodeFromIterable(
-            iterable: Iterable<T>,
-            startFrom: Node<T>? = null,
-        ): Node<T>? =
-            iterable.fold(startFrom) { acc, value ->
-                Node(value, acc)
-            }
-
-        private fun <T> directNodeFromList(
-            list: List<T>,
-        ): Node<T>? =
-            list.foldRight(null as Node<T>?) { value, acc ->
-                Node(value, acc)
-            }
-    }
 }
