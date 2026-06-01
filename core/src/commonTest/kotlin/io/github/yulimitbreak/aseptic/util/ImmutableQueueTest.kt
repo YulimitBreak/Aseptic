@@ -33,7 +33,7 @@ class ImmutableQueueTest : BehaviorSpec() {
 
             When("Items are added to it") {
                 val addedItems = listOf(1, 2, 3, 4, 5)
-                val newQueue = empty + addedItems
+                val newQueue = addedItems.toImmutableQueue()
 
                 Then("The queue has only these items") {
                     newQueue shouldContainExactly addedItems
@@ -73,7 +73,7 @@ class ImmutableQueueTest : BehaviorSpec() {
             val source = listOf(1, 2, 3, 4, 5)
 
             When("A new queue is created from it") {
-                val queue = ImmutableQueue(source)
+                val queue = source.toImmutableQueue()
 
                 Then("Its contents should be equal to original list") {
                     queue shouldContainExactly source
@@ -83,18 +83,6 @@ class ImmutableQueueTest : BehaviorSpec() {
                 }
                 Then("size should equal list size") {
                     queue.size shouldBeEqual source.size
-                }
-
-                And("Another queue is created by adding items one by one") {
-                    val otherQueue = source.fold(ImmutableQueue<Int>()) { acc, i -> acc + i }
-
-                    Then("Both queues should be equal with same hashcode and contents") {
-                        assertSoftly {
-                            otherQueue shouldBeEqual queue
-                            otherQueue shouldHaveSameHashCodeAs queue
-                            otherQueue shouldContainExactly queue
-                        }
-                    }
                 }
             }
         }
@@ -120,7 +108,7 @@ class ImmutableQueueTest : BehaviorSpec() {
         }
 
         Given("An arbitrary queue") {
-            val queueGen = Arb.list(Arb.int()).map { ImmutableQueue(it) }
+            val queueGen = Arb.list(Arb.int()).map { it.toImmutableQueue() }
 
             When("Items are dropped from it") {
                 Then("Items are dropped in the same order they would be iterated") {
@@ -139,28 +127,11 @@ class ImmutableQueueTest : BehaviorSpec() {
                 }
             }
 
-            When("Few elements are added one by one") {
-                val newValues = listOf(1, 2, 3, 4, 5)
-
-                And("The same elements are added at once") {
-                    Then("Both results should be identical") {
-                        checkAll(queueGen) { queue ->
-                            val queueOneByOne = newValues.fold(queue) { acc, i -> acc + i }
-                            val queueAtOnce = queue + newValues
-                            assertSoftly {
-                                queueOneByOne shouldBeEqual queueAtOnce
-                                queueOneByOne shouldHaveSameHashCodeAs queueAtOnce
-                                queueOneByOne shouldContainExactly queueAtOnce
-                            }
-                        }
-                    }
-                }
-            }
-
             When("Elements are dropped one by one") {
                 Then("Result matches constructing from the tail of the original list") {
                     checkAll(queueGen, Arb.int(1..5)) { source, dropCount ->
-                        val queueWithLess = source.toList().drop(dropCount).let(::ImmutableQueue)
+                        val queueWithLess =
+                            source.toList().drop(dropCount).toImmutableQueue()
                         val queueWithDropped = run {
                             var queue = source
                             repeat(dropCount) { queue = queue.drop() }
@@ -176,6 +147,9 @@ class ImmutableQueueTest : BehaviorSpec() {
             }
         }
     }
+
+    private fun <T> Iterable<T>.toImmutableQueue(): ImmutableQueue<T> =
+        fold(ImmutableQueue()) { acc, i -> acc + i }
 
     private fun <T> ImmutableQueue<T>.popAll(): List<T> {
         val popped = mutableListOf<T>()

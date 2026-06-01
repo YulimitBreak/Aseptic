@@ -1,5 +1,8 @@
+@file:OptIn(io.github.yulimitbreak.aseptic.AsepticInternal::class)
+
 package io.github.yulimitbreak.aseptic.schema.fields
 
+import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +28,7 @@ internal object FieldTestUtils {
     }
 
     @Suppress("UNCHECKED_CAST")
-    fun <T, U> Any.asUpdatable() = this as UpdatableFieldState<T, U>
+    fun <T, U> FieldState<T>.asUpdatable() = this as UpdatableFieldState<T, U>
 
     suspend fun <T, U> UpdatableFieldState<T, U>.locked(block: UpdatableFieldState<T, U>.() -> Unit) {
         lock()

@@ -1,5 +1,6 @@
 package io.github.yulimitbreak.aseptic.schema
 
+import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.schema.fields.BackedFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived1FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
@@ -43,6 +44,7 @@ import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
  * }
  * ```
  */
+
 abstract class AsepticSchema {
 
     /**
@@ -145,6 +147,7 @@ abstract class AsepticSchema {
      *
      * TODO update KDoc when we finalize a way to access them properly once processor is done
      */
+    @OptIn(AsepticInternal::class)
     protected fun <T : Any> message(): MessageFieldDeclaration<T> =
         MessageFieldDeclaration()
 
