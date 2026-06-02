@@ -2,12 +2,10 @@ package io.github.yulimitbreak.aseptic.state
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.util.UncheckedMap
-import io.github.yulimitbreak.aseptic.util.UncheckedMapWrapper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.sync.Mutex
@@ -28,6 +26,7 @@ class StateContainer internal constructor(
 
     private val consistencyMutex = Mutex()
 
+    /*
     private val uiCombined = fields
         .filter { (key, _) -> uiFields.contains(key) }
         .map { (name, field) ->
@@ -37,12 +36,13 @@ class StateContainer internal constructor(
                 UncheckedMapWrapper(entries.toMap())
             }
         }
+     */
 
     /**
      * Returns a [StateFlow] of UI state mapped from all `@Ui` fields via [uiMapper].
      */
     fun <UI> uiFlow(scope: CoroutineScope, uiMapper: (UncheckedMap<String>) -> UI): StateFlow<UI> =
-        uiCombined.map(uiMapper).stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
+        TODO("uiCombined").map(uiMapper).stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
 
     /**
      * Returns the current value of the field by name.
@@ -58,7 +58,7 @@ class StateContainer internal constructor(
      *
      * Performs an unchecked cast, should be used only in generated code.
      */
-    fun <T> asFlow(name: String): Flow<T> = fields[name]?.flow as Flow<T>
+    fun <T> asFlow(name: String): Flow<T> = fields[name]?.produceFlow() as Flow<T>
 
     /**
      * Applies [update] to a single updatable field under its field mutex.

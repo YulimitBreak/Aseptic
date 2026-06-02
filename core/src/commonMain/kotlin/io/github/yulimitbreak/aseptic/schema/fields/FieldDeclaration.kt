@@ -4,7 +4,6 @@ package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * Marker interface for all field declarations in an [io.github.yulimitbreak.aseptic.schema.AsepticSchema].
@@ -17,7 +16,6 @@ import kotlinx.coroutines.CoroutineScope
  */
 abstract class FieldDeclaration<out T> internal constructor() {
     internal abstract fun convert(
-        flows: StateContainerBuilder.FlowMap,
-        coroutineScope: CoroutineScope
+        fields: StateContainerBuilder.FieldMap,
     ): FieldState<T>
 }

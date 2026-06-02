@@ -1,6 +1,6 @@
 package io.github.yulimitbreak.aseptic.state
 
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 
 /**
@@ -17,9 +17,10 @@ import kotlinx.coroutines.sync.Mutex
  */
 internal abstract class FieldState<out T> {
 
-    abstract val flow: StateFlow<T>
+    abstract fun produceFlow(): Flow<T>
+    abstract val value: T
 
-    open val value: T get() = flow.value
+    abstract fun addUpdateCallback(callback: (T) -> Unit)
 }
 
 /**

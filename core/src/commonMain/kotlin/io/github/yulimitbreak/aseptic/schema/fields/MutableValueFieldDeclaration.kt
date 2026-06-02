@@ -5,7 +5,7 @@ package io.github.yulimitbreak.aseptic.schema.fields
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -23,18 +23,28 @@ class MutableValueFieldDeclaration<T> internal constructor(
     internal val initial: T,
 ) : FieldDeclaration<T>() {
     override fun convert(
-        flows: StateContainerBuilder.FlowMap,
-        coroutineScope: CoroutineScope
+        fields: StateContainerBuilder.FieldMap
     ): FieldState<T> = State(initial)
 
     private class State<T>(
         initial: T
     ) : UpdatableFieldState<T, (T) -> T>() {
 
+        private val flow = MutableStateFlow(initial)
+
+        override fun produceFlow(): Flow<T> = flow
+
+        override val value: T get() = flow.value
+
+        private var updateCallbacks = mutableListOf<(T) -> Unit>()
+
         override fun doUpdate(update: (T) -> T) {
             flow.update(update)
+            updateCallbacks.forEach { it(flow.value) }
         }
 
-        override val flow = MutableStateFlow(initial)
+        override fun addUpdateCallback(callback: (T) -> Unit) {
+            updateCallbacks.add(callback)
+        }
     }
 }

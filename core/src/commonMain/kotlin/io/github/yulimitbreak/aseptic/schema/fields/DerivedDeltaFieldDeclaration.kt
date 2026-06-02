@@ -4,13 +4,10 @@ package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.runningFold
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 
 /**
  * Declaration of a read-only field derived from a source using delta (old→new) logic.
@@ -18,6 +15,9 @@ import kotlinx.coroutines.flow.stateIn
  * Unlike [Derived1FieldDeclaration], [mapper] receives both the *previous* and *new* source value
  * along with the *previous result*, enabling incremental computation (e.g. accumulating diffs,
  * tracking transitions). [initial] is the result value before the first source emission.
+ *
+ * The mapper is called synchronously inside the source field's update, under the source's mutex.
+ * Every source update is processed — no intermediate values are skipped.
  *
  * @param T the type of the source field value.
  * @param R the type of the derived field value.
@@ -29,21 +29,32 @@ class DerivedDeltaFieldDeclaration<T, R> internal constructor(
     internal val initial: R,
     internal val mapper: (oldSource: T, newSource: T, oldResult: R) -> R,
 ) : FieldDeclaration<R>() {
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(flows[source], initial, mapper, coroutineScope)
+    override fun convert(fields: StateContainerBuilder.FieldMap): FieldState<R> =
+        State(fields[source], initial, mapper)
 
     private class State<T, R>(
-        sourceFlow: StateFlow<T>,
+        sourceState: FieldState<T>,
         initial: R,
-        mapper: (T, T, R) -> R,
-        coroutineScope: CoroutineScope,
+        private val mapper: (T, T, R) -> R,
     ) : FieldState<R>() {
-        override val flow: StateFlow<R> = sourceFlow
-            .drop(1)
-            .runningFold(sourceFlow.value to initial) { (prevSource, prevResult), newSource ->
-                newSource to mapper(prevSource, newSource, prevResult)
+
+        private val flow = MutableStateFlow(sourceState.value to initial)
+        private val callbacks = mutableListOf<(R) -> Unit>()
+
+        init {
+            sourceState.addUpdateCallback { newSource ->
+                flow.update { (prevSource, prevValue) ->
+                    newSource to mapper(prevSource, newSource, prevValue)
+                }
+                callbacks.forEach { it(flow.value.second) }
             }
-            .map { it.second }
-            .stateIn(coroutineScope, SharingStarted.Eagerly, initial)
+        }
+
+        override fun produceFlow(): Flow<R> = flow.map { it.second }
+        override val value: R get() = flow.value.second
+
+        override fun addUpdateCallback(callback: (R) -> Unit) {
+            callbacks.add(callback)
+        }
     }
 }

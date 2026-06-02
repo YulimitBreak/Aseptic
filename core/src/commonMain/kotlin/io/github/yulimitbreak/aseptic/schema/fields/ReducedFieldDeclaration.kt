@@ -5,7 +5,7 @@ package io.github.yulimitbreak.aseptic.schema.fields
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -27,17 +27,28 @@ class ReducedFieldDeclaration<T, U> internal constructor(
     /** Produces the next field value from the current value and an incoming update message. */
     internal val update: (old: T, update: U) -> T,
 ) : FieldDeclaration<T>() {
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<T> =
+    override fun convert(fields: StateContainerBuilder.FieldMap): FieldState<T> =
         State(initial, update)
 
     private class State<T, U>(
         initial: T,
         private val reducer: (T, U) -> T,
     ) : UpdatableFieldState<T, U>() {
-        override val flow = MutableStateFlow(initial)
+        private val flow = MutableStateFlow(initial)
+
+        override fun produceFlow(): Flow<T> = flow
+
+        override val value: T get() = flow.value
+
+        private var updateCallbacks = mutableListOf<(T) -> Unit>()
 
         override fun doUpdate(update: U) {
             flow.update { reducer(it, update) }
+            updateCallbacks.forEach { it(flow.value) }
+        }
+
+        override fun addUpdateCallback(callback: (T) -> Unit) {
+            updateCallbacks.add(callback)
         }
     }
 }
