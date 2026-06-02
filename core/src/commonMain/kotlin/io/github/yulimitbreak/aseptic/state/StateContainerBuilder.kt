@@ -61,6 +61,9 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
         if (uiVisible) uiFields += name
     }
 
+    /**
+     * Creates a [StateContainer] from this builder
+     */
     fun build(): StateContainer = StateContainer(
         fields = fields,
         lockingOrder = lockingOrder,
