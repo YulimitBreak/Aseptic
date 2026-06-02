@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       checks: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -45,7 +46,7 @@ jobs:
   detekt:
     runs-on: ubuntu-latest
     permissions:
-      security-events: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
 
@@ -56,12 +57,21 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
 
+      - uses: reviewdog/action-setup@v1
+        with:
+          reviewdog_version: latest
+
       - name: Run detekt
         run: ./gradlew detekt
-
-      - name: Upload SARIF to Code Scanning
-        if: always()
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: build/reports/detekt/detekt.sarif
+
+      - name: Report detekt findings
+        if: always()
+        env:
+          REVIEWDOG_GITHUB_API_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          exit_code=0
+          while IFS= read -r f; do
+            reviewdog -f=sarif -reporter=github-pr-review -fail-on-error < "$f" || exit_code=1
+          done < <(find . -path '*/build/reports/detekt/detekt.sarif')
+          exit $exit_code
