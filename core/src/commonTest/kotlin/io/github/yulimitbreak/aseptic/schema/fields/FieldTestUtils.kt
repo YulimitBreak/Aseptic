@@ -5,27 +5,25 @@ package io.github.yulimitbreak.aseptic.schema.fields
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
-import kotlinx.coroutines.flow.MutableStateFlow
 
 internal object FieldTestUtils {
 
-    fun <T> flowMapWith(
-        decl: FieldDeclaration<T>,
-        flow: MutableStateFlow<T>,
-    ): StateContainerBuilder.FlowMap = StateContainerBuilder.FlowMap().also { it[decl] = flow }
-
-    fun flowMapWith(
-        vararg entries: Pair<FieldDeclaration<*>, MutableStateFlow<*>>,
-    ): StateContainerBuilder.FlowMap = StateContainerBuilder.FlowMap().also { map ->
-        entries.forEach { (decl, flow) -> map[decl] = flow }
+    fun <T> MutableValueFieldDeclaration<T>.buildState(): Pair<UpdatableFieldState<T, (T) -> T>, StateContainerBuilder.FieldMap> {
+        val state = convert(StateContainerBuilder.FieldMap()).asUpdatable<T, (T) -> T>()
+        return state to StateContainerBuilder.FieldMap().also { it[this] = state }
     }
 
-    fun flowMapWith(
-        decls: List<FieldDeclaration<*>>,
-        flows: List<MutableStateFlow<*>>,
-    ): StateContainerBuilder.FlowMap = StateContainerBuilder.FlowMap().also { map ->
-        decls.zip(flows).forEach { (decl, flow) -> map[decl] = flow }
+    fun <T> buildStates(
+        decls: List<MutableValueFieldDeclaration<T>>,
+    ): Pair<List<UpdatableFieldState<T, (T) -> T>>, StateContainerBuilder.FieldMap> {
+        val states = decls.map { it.convert(StateContainerBuilder.FieldMap()).asUpdatable<T, (T) -> T>() }
+        val map = StateContainerBuilder.FieldMap().also { map ->
+            decls.zip(states).forEach { (decl, state) -> map[decl] = state }
+        }
+        return states to map
     }
+
+    fun <T> buildStates(vararg decls: MutableValueFieldDeclaration<T>) = buildStates(decls.toList())
 
     @Suppress("UNCHECKED_CAST")
     fun <T, U> FieldState<T>.asUpdatable() = this as UpdatableFieldState<T, U>

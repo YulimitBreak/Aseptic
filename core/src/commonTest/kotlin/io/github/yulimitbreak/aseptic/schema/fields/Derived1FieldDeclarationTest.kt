@@ -1,15 +1,11 @@
-@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, io.github.yulimitbreak.aseptic.AsepticInternal::class)
+@file:OptIn(io.github.yulimitbreak.aseptic.AsepticInternal::class)
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
-import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.flowMapWith
+import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.buildState
+import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.locked
 import io.kotest.core.spec.style.BehaviorSpec
-import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
 
 class Derived1FieldDeclarationTest : BehaviorSpec() {
 
@@ -20,40 +16,28 @@ class Derived1FieldDeclarationTest : BehaviorSpec() {
             val sourceDecl = MutableValueFieldDeclaration(3)
 
             Then("mapper is applied to initial value") {
-                val scope = CoroutineScope(coroutineContext + Job())
-                val sourceFlow = MutableStateFlow(3)
-                val state = Derived1FieldDeclaration(sourceDecl) { it * 2 }
-                    .convert(flowMapWith(sourceDecl, sourceFlow), scope)
+                val (_, fieldMap) = sourceDecl.buildState()
+                val state = Derived1FieldDeclaration(sourceDecl) { it * 2 }.convert(fieldMap)
                 state.value shouldBe 6
-                state.flow.value shouldBe 6
-                scope.cancel()
             }
 
             When("source updates") {
                 Then("derived reflects the new source value") {
-                    val scope = CoroutineScope(coroutineContext + Job())
-                    val sourceFlow = MutableStateFlow(3)
-                    val state = Derived1FieldDeclaration(sourceDecl) { it * 2 }
-                        .convert(flowMapWith(sourceDecl, sourceFlow), scope)
-                    sourceFlow.value = 10
-                    testCoroutineScheduler.advanceUntilIdle()
-                    state.flow.value shouldBe 20
-                    scope.cancel()
+                    val (sourceState, fieldMap) = sourceDecl.buildState()
+                    val state = Derived1FieldDeclaration(sourceDecl) { it * 2 }.convert(fieldMap)
+                    sourceState.locked { update { 10 } }
+                    state.value shouldBe 20
                 }
             }
 
             When("source updates multiple times") {
                 Then("derived always reflects latest mapped value") {
-                    val scope = CoroutineScope(coroutineContext + Job())
-                    val sourceFlow = MutableStateFlow(3)
-                    val state = Derived1FieldDeclaration(sourceDecl) { it * 2 }
-                        .convert(flowMapWith(sourceDecl, sourceFlow), scope)
+                    val (sourceState, fieldMap) = sourceDecl.buildState()
+                    val state = Derived1FieldDeclaration(sourceDecl) { it * 2 }.convert(fieldMap)
                     for (i in listOf(1, 5, 100, 0)) {
-                        sourceFlow.value = i
-                        testCoroutineScheduler.advanceUntilIdle()
-                        state.flow.value shouldBe i * 2
+                        sourceState.locked { update { i } }
+                        state.value shouldBe i * 2
                     }
-                    scope.cancel()
                 }
             }
         }
@@ -62,24 +46,17 @@ class Derived1FieldDeclarationTest : BehaviorSpec() {
             val sourceDecl = MutableValueFieldDeclaration("hello")
 
             Then("mapper is applied to initial value") {
-                val scope = CoroutineScope(coroutineContext + Job())
-                val sourceFlow = MutableStateFlow("hello")
-                val state = Derived1FieldDeclaration(sourceDecl) { it.length }
-                    .convert(flowMapWith(sourceDecl, sourceFlow), scope)
+                val (_, fieldMap) = sourceDecl.buildState()
+                val state = Derived1FieldDeclaration(sourceDecl) { it.length }.convert(fieldMap)
                 state.value shouldBe 5
-                scope.cancel()
             }
 
             When("source changes to empty string") {
                 Then("derived value is 0") {
-                    val scope = CoroutineScope(coroutineContext + Job())
-                    val sourceFlow = MutableStateFlow("hello")
-                    val state = Derived1FieldDeclaration(sourceDecl) { it.length }
-                        .convert(flowMapWith(sourceDecl, sourceFlow), scope)
-                    sourceFlow.value = ""
-                    testCoroutineScheduler.advanceUntilIdle()
-                    state.flow.value shouldBe 0
-                    scope.cancel()
+                    val (sourceState, fieldMap) = sourceDecl.buildState()
+                    val state = Derived1FieldDeclaration(sourceDecl) { it.length }.convert(fieldMap)
+                    sourceState.locked { update { "" } }
+                    state.value shouldBe 0
                 }
             }
         }

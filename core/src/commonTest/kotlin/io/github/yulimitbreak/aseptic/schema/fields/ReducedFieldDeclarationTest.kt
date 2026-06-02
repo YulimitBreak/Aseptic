@@ -15,39 +15,39 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
             val declaration = ReducedFieldDeclaration(0) { old, update: Int -> old + update }
 
             Then("initial value is preserved") {
-                val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                val state = declaration.convert(StateContainerBuilder.FieldMap())
                 state.value shouldBe 0
-                state.flow.value shouldBe 0
+                state.value shouldBe 0
             }
 
             When("updated once") {
                 Then("reducer is applied") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                    val state = declaration.convert(StateContainerBuilder.FieldMap())
                         .asUpdatable<Int, Int>()
                     state.locked { update(5) }
                     state.value shouldBe 5
-                    state.flow.value shouldBe 5
+                    state.value shouldBe 5
                 }
             }
 
             When("updated multiple times sequentially") {
                 Then("all updates are folded") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                    val state = declaration.convert(StateContainerBuilder.FieldMap())
                         .asUpdatable<Int, Int>()
                     state.locked { update(3) }
                     state.locked { update(7) }
                     state.value shouldBe 10
-                    state.flow.value shouldBe 10
+                    state.value shouldBe 10
                 }
             }
 
             When("updated repeatedly with the same value") {
                 Then("all updates are accumulated") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                    val state = declaration.convert(StateContainerBuilder.FieldMap())
                         .asUpdatable<Int, Int>()
                     repeat(10) { state.locked { update(1) } }
                     state.value shouldBe 10
-                    state.flow.value shouldBe 10
+                    state.value shouldBe 10
                 }
             }
         }
@@ -56,20 +56,20 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
             val declaration = ReducedFieldDeclaration(emptyList<String>()) { old, item: String -> old + item }
 
             Then("initial value is empty list") {
-                val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                val state = declaration.convert(StateContainerBuilder.FieldMap())
                 state.value shouldBe emptyList<String>()
-                state.flow.value shouldBe emptyList<String>()
+                state.value shouldBe emptyList<String>()
             }
 
             When("items appended one by one") {
                 Then("list contains them in order") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                    val state = declaration.convert(StateContainerBuilder.FieldMap())
                         .asUpdatable<List<String>, String>()
                     state.locked { update("a") }
                     state.locked { update("b") }
                     state.locked { update("c") }
                     state.value shouldBe listOf("a", "b", "c")
-                    state.flow.value shouldBe listOf("a", "b", "c")
+                    state.value shouldBe listOf("a", "b", "c")
                 }
             }
         }
@@ -83,7 +83,7 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
 
             When("updated sequentially") {
                 Then("reducer receives the previous accumulated value on each call") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                    val state = declaration.convert(StateContainerBuilder.FieldMap())
                         .asUpdatable<Int, Int>()
                     state.locked { update(1) }
                     state.locked { update(2) }
