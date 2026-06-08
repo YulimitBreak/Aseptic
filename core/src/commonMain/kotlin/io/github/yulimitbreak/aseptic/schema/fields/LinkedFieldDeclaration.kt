@@ -6,6 +6,17 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 import kotlinx.coroutines.CoroutineScope
 
+/**
+ * A [LinkableFieldDeclaration] that automatically receives updates from a source field.
+ *
+ * Wraps an [original] field and registers a callback on a source field so that every time
+ * the source is written, it updates the wrapped field.
+ *
+ * @param T the type of the field value.
+ * @param Update the internal write message type of the wrapped field (hidden from callers).
+ * @param LinkableUpdate the value propagated to linked fields after each write; inherited from the wrapped field.
+ * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.linkedTo
+ */
 class LinkedFieldDeclaration<out T, Update, out LinkableUpdate> internal constructor(
     private val original: LinkableFieldDeclaration<T, Update, LinkableUpdate>,
     private val link: Link<*, Update>

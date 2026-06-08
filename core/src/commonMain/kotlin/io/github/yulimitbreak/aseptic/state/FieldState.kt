@@ -12,8 +12,8 @@ import kotlinx.coroutines.sync.Mutex
  * a shortcut for the current snapshot.
  *
  * Subclasses fall into two categories:
- * - Read-only fields (derived, delta-derived): implement [FieldState] directly.
- * - Writable fields (mutable, reduced, message): extend [UpdatableFieldState].
+ * - Read-only fields (derived): implement [FieldState] directly.
+ * - Writable fields (mutable, reduced, message, linked): extend [UpdatableFieldState].
  */
 internal abstract class FieldState<out T> {
 
@@ -27,10 +27,12 @@ internal abstract class FieldState<out T> {
  * A [FieldState] that accepts writes serialized under a per-field [Mutex].
  *
  * The mutex is owned by this class and is exposed only via [lock]/[unlock], which are called
- * by [StateContainer] when orchestrating atomic commits. [update] can only be called from under lock
+ * by [StateContainer] when orchestrating atomic commits. [update] can only be called while the
+ * mutex is held.
  *
  * @param T the type of the field value.
- * @param Update the type of the update message accepted by this field.
+ * @param Update the type of the write message accepted by this field.
+ * @param LinkableUpdate the value emitted to linked fields after each write.
  */
 internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate> : FieldState<T>() {
 
@@ -39,7 +41,7 @@ internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate
     private val mutex = Mutex()
 
     /**
-     * Applies [update] to the field's internal state.
+     * Applies [update] to the field's internal state and notifies all registered callbacks.
      *
      * Must only be called while [mutex] is held. Throws [IllegalStateException] otherwise.
      */
@@ -49,10 +51,17 @@ internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate
         updateCallbacks.forEach { it.invoke(output) }
     }
 
+    /**
+     * Applies [update] to internal state and returns the [LinkableUpdate] to broadcast.
+     * Called by [update] under the field mutex.
+     */
     internal abstract fun doUpdate(update: Update): LinkableUpdate
 
     /**
-     * Add update callback - primarily to be used with Linked fields
+     * Registers [callback] to be invoked with the [LinkableUpdate] after every write.
+     * Used by [io.github.yulimitbreak.aseptic.schema.fields.LinkedFieldDeclaration] to wire
+     * automatic update propagation between fields. Must be called at construction time,
+     * before any writes can occur.
      */
     internal fun addUpdateCallback(callback: (LinkableUpdate) -> Unit) {
         updateCallbacks.add(callback)
@@ -62,7 +71,7 @@ internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate
     internal suspend fun lock() = mutex.lock()
 
     /**
-     * Attempts to acquire the field mutex, returns false on failure
+     * Attempts to acquire the field mutex without suspending. Returns `false` if already held.
      */
     internal fun tryLock() = mutex.tryLock()
 

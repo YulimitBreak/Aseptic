@@ -1,6 +1,5 @@
 package io.github.yulimitbreak.aseptic.schema
 
-import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.schema.fields.BackedFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived1FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
@@ -129,7 +128,6 @@ abstract class AsepticSchema {
      *
      * TODO update KDoc when we finalize a way to access them properly once processor is done
      */
-    @OptIn(AsepticInternal::class)
     protected fun <T : Any> message(): MessageFieldDeclaration<T> = MessageFieldDeclaration()
 
     /**
@@ -145,6 +143,15 @@ abstract class AsepticSchema {
     protected fun <M, U> backed(initial: M, mapper: (M) -> U): BackedFieldDeclaration<M, U> =
         BackedFieldDeclaration(initial, mapper)
 
+    /**
+     * Wires this field to automatically receive updates from [source].
+     *
+     * Whenever [source] is written, [updateMapper] is called with the source's output value and
+     * the result is applied as a write to this field.
+     *
+     * @param source the field whose writes trigger updates on this field.
+     * @param updateMapper converts the source's update to an update for this field.
+     */
     @Suppress("MaximumLineLength")
     protected fun <T, SourceUpdate, Update, LinkableUpdate> LinkableFieldDeclaration<T, Update, LinkableUpdate>.linkedTo(
         source: LinkableFieldDeclaration<*, *, SourceUpdate>,
@@ -157,6 +164,13 @@ abstract class AsepticSchema {
         )
     )
 
+    /**
+     * Wires this field to automatically receive updates from [source], using the source output
+     * directly as the update message (no mapping needed). Requires that the source's output type
+     * matches this field's update type.
+     *
+     * @param source the field whose writes trigger updates on this field.
+     */
     protected fun <T, SourceUpdate, LinkableUpdate> LinkableFieldDeclaration<T, SourceUpdate, LinkableUpdate>.linkedTo(
         source: LinkableFieldDeclaration<*, *, SourceUpdate>
     ) = LinkedFieldDeclaration(
@@ -164,6 +178,17 @@ abstract class AsepticSchema {
         link = LinkedFieldDeclaration.Link(source) { it }
     )
 
+    /**
+     * Wires this [MutableValueFieldDeclaration] to automatically update its value whenever
+     * [source] is written.
+     *
+     * [updateMapper] receives the current field value and the source's output, and returns the
+     * new field value. This is a convenience overload that wraps the result in the transform
+     * `(T) -> T` expected by [MutableValueFieldDeclaration].
+     *
+     * @param source the field whose writes trigger updates on this field.
+     * @param updateMapper converts the current value and the source's update to an update for this field.
+     */
     protected inline fun <T, SourceUpdate> MutableValueFieldDeclaration<T>.linkedTo(
         source: LinkableFieldDeclaration<*, *, SourceUpdate>,
         crossinline updateMapper: (previous: T, update: SourceUpdate) -> T,
