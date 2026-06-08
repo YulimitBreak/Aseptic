@@ -23,7 +23,7 @@ class MutableValueFieldDeclaration<T> internal constructor(
     internal val initial: T,
 ) : FieldDeclaration<T>() {
     override fun convert(
-        flows: StateContainerBuilder.FlowMap,
+        fields: StateContainerBuilder.FieldMap,
         coroutineScope: CoroutineScope
     ): FieldState<T> = State(initial)
 

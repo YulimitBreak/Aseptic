@@ -27,7 +27,7 @@ class ReducedFieldDeclaration<T, U> internal constructor(
     /** Produces the next field value from the current value and an incoming update message. */
     internal val update: (old: T, update: U) -> T,
 ) : FieldDeclaration<T>() {
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<T> =
+    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<T> =
         State(initial, update)
 
     private class State<T, U>(

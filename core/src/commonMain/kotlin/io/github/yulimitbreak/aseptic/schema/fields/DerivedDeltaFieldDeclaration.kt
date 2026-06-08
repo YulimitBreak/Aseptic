@@ -29,8 +29,8 @@ class DerivedDeltaFieldDeclaration<T, R> internal constructor(
     internal val initial: R,
     internal val mapper: (oldSource: T, newSource: T, oldResult: R) -> R,
 ) : FieldDeclaration<R>() {
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(flows[source], initial, mapper, coroutineScope)
+    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
+        State(fields[source].flow, initial, mapper, coroutineScope)
 
     private class State<T, R>(
         sourceFlow: StateFlow<T>,

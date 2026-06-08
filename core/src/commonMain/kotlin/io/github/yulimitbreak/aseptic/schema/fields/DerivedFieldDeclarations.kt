@@ -23,8 +23,8 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
     internal val source1: FieldDeclaration<T1>,
     internal val mapper: (T1) -> R,
 ) : FieldDeclaration<R>() {
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(flows[source1], mapper, coroutineScope)
+    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
+        State(fields[source1].flow, mapper, coroutineScope)
 
     private class State<T1, R>(
         sourceFlow: StateFlow<T1>,
@@ -50,8 +50,8 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
     internal val source2: FieldDeclaration<T2>,
     internal val mapper: (T1, T2) -> R,
 ) : FieldDeclaration<R>() {
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(flows[source1], flows[source2], mapper, coroutineScope)
+    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
+        State(fields[source1].flow, fields[source2].flow, mapper, coroutineScope)
 
     private class State<T1, T2, R>(
         flow1: StateFlow<T1>,
@@ -78,8 +78,8 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
     internal val source3: FieldDeclaration<T3>,
     internal val mapper: (T1, T2, T3) -> R,
 ) : FieldDeclaration<R>() {
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(flows[source1], flows[source2], flows[source3], mapper, coroutineScope)
+    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
+        State(fields[source1].flow, fields[source2].flow, fields[source3].flow, mapper, coroutineScope)
 
     private class State<T1, T2, T3, R>(
         flow1: StateFlow<T1>,
@@ -109,9 +109,9 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
     internal val mapper: (List<T>) -> R,
 ) : FieldDeclaration<R>() {
     @Suppress("UNCHECKED_CAST")
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<R> =
+    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
         State(
-            sourceFlows = sources.map { flows[it] } as List<Flow<Any?>>,
+            sourceFlows = sources.map { fields[it] } as List<Flow<Any?>>,
             mapper = mapper as (List<Any?>) -> R,
             coroutineScope = coroutineScope,
         )

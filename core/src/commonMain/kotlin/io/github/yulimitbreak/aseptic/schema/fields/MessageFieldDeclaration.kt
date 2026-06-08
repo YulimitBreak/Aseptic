@@ -36,7 +36,7 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
     }
 
     override fun convert(
-        flows: StateContainerBuilder.FlowMap,
+        fields: StateContainerBuilder.FieldMap,
         coroutineScope: CoroutineScope,
     ): FieldState<T?> = State(coroutineScope)
 

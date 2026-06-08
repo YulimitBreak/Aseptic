@@ -17,7 +17,7 @@ import kotlinx.coroutines.CoroutineScope
  */
 abstract class FieldDeclaration<out T> internal constructor() {
     internal abstract fun convert(
-        flows: StateContainerBuilder.FlowMap,
+        fields: StateContainerBuilder.FieldMap,
         coroutineScope: CoroutineScope
     ): FieldState<T>
 }
