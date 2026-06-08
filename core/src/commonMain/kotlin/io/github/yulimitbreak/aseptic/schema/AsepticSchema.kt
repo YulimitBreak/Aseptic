@@ -5,7 +5,6 @@ import io.github.yulimitbreak.aseptic.schema.fields.BackedFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived1FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived3FieldDeclaration
-import io.github.yulimitbreak.aseptic.schema.fields.DerivedDeltaFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.DerivedNFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.LinkableFieldDeclaration
@@ -104,19 +103,6 @@ abstract class AsepticSchema {
         mapper: (List<T>) -> R,
     ): DerivedNFieldDeclaration<T, R> =
         DerivedNFieldDeclaration(listOf(source1, source2, source3, source4) + moreSources, mapper)
-
-    /**
-     * Declares a read-only field derived from a source using delta (old→new) logic.
-     *
-     * Unlike [derived], [mapper] also receives both the *current* and the *previous* source value and
-     * the *previous result*, enabling incremental computation.
-     * [initial] is the result before the first source emission.
-     */
-    protected fun <T, R> derivedDelta(
-        source: FieldDeclaration<T>,
-        initial: R,
-        mapper: (oldSource: T, newSource: T, oldResult: R) -> R,
-    ): DerivedDeltaFieldDeclaration<T, R> = DerivedDeltaFieldDeclaration(source, initial, mapper)
 
     /**
      * Declares a field updated by folding incoming update messages into its current value.
