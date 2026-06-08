@@ -8,6 +8,8 @@ import io.github.yulimitbreak.aseptic.schema.fields.Derived3FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.DerivedDeltaFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.DerivedNFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.LinkableFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.LinkedFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MessageFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MutableValueFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
@@ -52,8 +54,7 @@ abstract class AsepticSchema {
      *
      * The generated state handle exposes a typed setter for this field.
      */
-    protected fun <T> mutable(initial: T): MutableValueFieldDeclaration<T> =
-        MutableValueFieldDeclaration(initial)
+    protected fun <T> mutable(initial: T): MutableValueFieldDeclaration<T> = MutableValueFieldDeclaration(initial)
 
     /**
      * Declares a read-only field computed from one source field.
@@ -63,8 +64,7 @@ abstract class AsepticSchema {
     protected fun <T1, R> derived(
         source1: FieldDeclaration<T1>,
         mapper: (T1) -> R,
-    ): Derived1FieldDeclaration<T1, R> =
-        Derived1FieldDeclaration(source1, mapper)
+    ): Derived1FieldDeclaration<T1, R> = Derived1FieldDeclaration(source1, mapper)
 
     /**
      * Declares a read-only field computed from two source fields.
@@ -75,8 +75,7 @@ abstract class AsepticSchema {
         source1: FieldDeclaration<T1>,
         source2: FieldDeclaration<T2>,
         mapper: (T1, T2) -> R,
-    ): Derived2FieldDeclaration<T1, T2, R> =
-        Derived2FieldDeclaration(source1, source2, mapper)
+    ): Derived2FieldDeclaration<T1, T2, R> = Derived2FieldDeclaration(source1, source2, mapper)
 
     /**
      * Declares a read-only field computed from three source fields.
@@ -88,8 +87,7 @@ abstract class AsepticSchema {
         source2: FieldDeclaration<T2>,
         source3: FieldDeclaration<T3>,
         mapper: (T1, T2, T3) -> R,
-    ): Derived3FieldDeclaration<T1, T2, T3, R> =
-        Derived3FieldDeclaration(source1, source2, source3, mapper)
+    ): Derived3FieldDeclaration<T1, T2, T3, R> = Derived3FieldDeclaration(source1, source2, source3, mapper)
 
     /**
      * Declares a read-only field computed from four or more source fields.
@@ -118,8 +116,7 @@ abstract class AsepticSchema {
         source: FieldDeclaration<T>,
         initial: R,
         mapper: (oldSource: T, newSource: T, oldResult: R) -> R,
-    ): DerivedDeltaFieldDeclaration<T, R> =
-        DerivedDeltaFieldDeclaration(source, initial, mapper)
+    ): DerivedDeltaFieldDeclaration<T, R> = DerivedDeltaFieldDeclaration(source, initial, mapper)
 
     /**
      * Declares a field updated by folding incoming update messages into its current value.
@@ -131,8 +128,7 @@ abstract class AsepticSchema {
     protected fun <T, U> reduced(
         initial: T,
         update: (old: T, update: U) -> T,
-    ): ReducedFieldDeclaration<T, U> =
-        ReducedFieldDeclaration(initial, update)
+    ): ReducedFieldDeclaration<T, U> = ReducedFieldDeclaration(initial, update)
 
     /**
      * Declares a one-way message field for fire-and-forget events sent from state to UI.
@@ -148,8 +144,7 @@ abstract class AsepticSchema {
      * TODO update KDoc when we finalize a way to access them properly once processor is done
      */
     @OptIn(AsepticInternal::class)
-    protected fun <T : Any> message(): MessageFieldDeclaration<T> =
-        MessageFieldDeclaration()
+    protected fun <T : Any> message(): MessageFieldDeclaration<T> = MessageFieldDeclaration()
 
     /**
      * Declares a composite field with separate internal and UI-facing representations.
@@ -163,4 +158,32 @@ abstract class AsepticSchema {
      */
     protected fun <M, U> backed(initial: M, mapper: (M) -> U): BackedFieldDeclaration<M, U> =
         BackedFieldDeclaration(initial, mapper)
+
+    @Suppress("MaximumLineLength")
+    protected fun <T, SourceUpdate, Update, LinkableUpdate> LinkableFieldDeclaration<T, Update, LinkableUpdate>.linkedTo(
+        source: LinkableFieldDeclaration<*, *, SourceUpdate>,
+        updateMapper: (SourceUpdate) -> Update,
+    ) = LinkedFieldDeclaration(
+        this,
+        link = LinkedFieldDeclaration.Link(
+            source,
+            updateMapper
+        )
+    )
+
+    protected fun <T, SourceUpdate, LinkableUpdate> LinkableFieldDeclaration<T, SourceUpdate, LinkableUpdate>.linkedTo(
+        source: LinkableFieldDeclaration<*, *, SourceUpdate>
+    ) = LinkedFieldDeclaration(
+        this,
+        link = LinkedFieldDeclaration.Link(source) { it }
+    )
+
+    protected inline fun <T, SourceUpdate> MutableValueFieldDeclaration<T>.linkedTo(
+        source: LinkableFieldDeclaration<*, *, SourceUpdate>,
+        crossinline updateMapper: (previous: T, update: SourceUpdate) -> T,
+    ) = this.linkedTo(source) { update ->
+        {
+            updateMapper(it, update)
+        }
+    }
 }

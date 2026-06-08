@@ -17,6 +17,7 @@ import kotlinx.coroutines.sync.Mutex
  */
 internal abstract class FieldState<out T> {
 
+    // TODO replace with calculating values on access/from UncheckedMap
     abstract val flow: StateFlow<T>
 
     open val value: T get() = flow.value
@@ -31,7 +32,9 @@ internal abstract class FieldState<out T> {
  * @param T the type of the field value.
  * @param Update the type of the update message accepted by this field.
  */
-internal abstract class UpdatableFieldState<out T, in Update> : FieldState<T>() {
+internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate> : FieldState<T>() {
+
+    private var updateCallbacks: MutableList<(LinkableUpdate) -> Unit> = mutableListOf()
 
     private val mutex = Mutex()
 
@@ -42,14 +45,27 @@ internal abstract class UpdatableFieldState<out T, in Update> : FieldState<T>() 
      */
     fun update(update: Update) {
         check(mutex.isLocked) { "update() must only be called while holding the field mutex" }
-        doUpdate(update)
+        val output = doUpdate(update)
+        updateCallbacks.forEach { it.invoke(output) }
     }
 
-    protected abstract fun doUpdate(update: Update)
+    internal abstract fun doUpdate(update: Update): LinkableUpdate
+
+    /**
+     * Add update callback - primarily to be used with Linked fields
+     */
+    internal fun addUpdateCallback(callback: (LinkableUpdate) -> Unit) {
+        updateCallbacks.add(callback)
+    }
 
     /** Acquires the field mutex. Called by [StateContainer] before committing writes. */
-    suspend fun lock() = mutex.lock()
+    internal suspend fun lock() = mutex.lock()
+
+    /**
+     * Attempts to acquire the field mutex, returns false on failure
+     */
+    internal fun tryLock() = mutex.tryLock()
 
     /** Releases the field mutex. Called by [StateContainer] after committing writes. */
-    fun unlock() = mutex.unlock()
+    internal fun unlock() = mutex.unlock()
 }

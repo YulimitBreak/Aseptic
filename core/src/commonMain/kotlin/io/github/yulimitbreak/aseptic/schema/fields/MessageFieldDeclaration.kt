@@ -40,7 +40,7 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
         coroutineScope: CoroutineScope,
     ): FieldState<T?> = State(coroutineScope)
 
-    private class State<T : Any>(coroutineScope: CoroutineScope) : UpdatableFieldState<T?, Update<T>>() {
+    private class State<T : Any>(coroutineScope: CoroutineScope) : UpdatableFieldState<T?, Update<T>, Unit>() {
         private val queueFlow = MutableStateFlow<ImmutableQueue<T>>(ImmutableQueue())
 
         override val flow: StateFlow<T?> = queueFlow

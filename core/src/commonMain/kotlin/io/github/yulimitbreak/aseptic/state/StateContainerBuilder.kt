@@ -3,7 +3,6 @@ package io.github.yulimitbreak.aseptic.state
 import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -55,7 +54,7 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
     fun <T> addField(name: String, uiVisible: Boolean, field: FieldDeclaration<T>) {
         val state = field.convert(fieldMap, coroutineScope)
         fields[name] = state
-        if (state is UpdatableFieldState<*, *>) {
+        if (state is UpdatableFieldState<*, *, *>) {
             lockingOrder += name
         }
         fieldMap[field] = state

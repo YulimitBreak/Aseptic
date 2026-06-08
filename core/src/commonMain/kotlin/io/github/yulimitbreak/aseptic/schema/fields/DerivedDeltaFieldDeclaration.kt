@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.stateIn
  * @param R the type of the derived field value.
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derivedDelta
  */
+@Deprecated("Replaced with linked fields")
 class DerivedDeltaFieldDeclaration<T, R> internal constructor(
     internal val source: FieldDeclaration<T>,
     /** The value of the derived field before the first source emission. */
