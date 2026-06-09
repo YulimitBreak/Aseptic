@@ -75,7 +75,6 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
         private val flow by lazy { MutableStateFlow(value) }
 
         override fun provideFlow() = flow
-
     }
 
     /**

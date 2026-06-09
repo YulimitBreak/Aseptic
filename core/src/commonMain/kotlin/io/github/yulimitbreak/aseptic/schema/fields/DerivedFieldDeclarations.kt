@@ -28,9 +28,17 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
         private val mapper: (T1) -> R,
     ) : FieldState<R>() {
 
-        override val value: R get() = mapper(source.value)
+        private var cache: Pair<T1, R> = source.value.let { it to mapper(it) }
 
-        override fun provideFlow(): Flow<R> = source.provideFlow().map(mapper)
+        private fun compute(s1: T1): R {
+            val c = cache
+            if (c.first == s1) return c.second
+            return mapper(s1).also { cache = s1 to it }
+        }
+
+        override val value: R get() = compute(source.value)
+
+        override fun provideFlow(): Flow<R> = source.provideFlow().map(::compute)
     }
 }
 
@@ -56,9 +64,19 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
         private val mapper: (T1, T2) -> R,
     ) : FieldState<R>() {
 
-        override val value: R get() = mapper(source1.value, source2.value)
+        private var cache: Triple<T1, T2, R> =
+            Triple(source1.value, source2.value, mapper(source1.value, source2.value))
 
-        override fun provideFlow(): Flow<R> = combine(source1.provideFlow(), source2.provideFlow(), mapper)
+        private fun compute(s1: T1, s2: T2): R {
+            val c = cache
+            if (c.first == s1 && c.second == s2) return c.third
+            return mapper(s1, s2).also { cache = Triple(s1, s2, it) }
+        }
+
+        override val value: R get() = compute(source1.value, source2.value)
+
+        override fun provideFlow(): Flow<R> =
+            combine(source1.provideFlow(), source2.provideFlow(), ::compute)
     }
 }
 
@@ -87,10 +105,25 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
         private val mapper: (T1, T2, T3) -> R,
     ) : FieldState<R>() {
 
-        override val value: R get() = mapper(source1.value, source2.value, source3.value)
+        private data class Cache<T1, T2, T3, R>(val s1: T1, val s2: T2, val s3: T3, val result: R)
+
+        private var cache = Cache(
+            source1.value,
+            source2.value,
+            source3.value,
+            mapper(source1.value, source2.value, source3.value)
+        )
+
+        private fun compute(s1: T1, s2: T2, s3: T3): R {
+            val c = cache
+            if (c.s1 == s1 && c.s2 == s2 && c.s3 == s3) return c.result
+            return mapper(s1, s2, s3).also { cache = Cache(s1, s2, s3, it) }
+        }
+
+        override val value: R get() = compute(source1.value, source2.value, source3.value)
 
         override fun provideFlow(): Flow<R> =
-            combine(source1.provideFlow(), source2.provideFlow(), source3.provideFlow(), mapper)
+            combine(source1.provideFlow(), source2.provideFlow(), source3.provideFlow(), ::compute)
     }
 }
 
@@ -121,10 +154,18 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
         private val mapper: (List<Any?>) -> R,
     ) : FieldState<R>() {
 
-        override val value: R get() = mapper(sources.map { it.value })
+        private var cache: Pair<List<Any?>, R> = sources.map { it.value }.let { it to mapper(it) }
+
+        private fun compute(inputs: List<Any?>): R {
+            val c = cache
+            if (c.first == inputs) return c.second
+            return mapper(inputs).also { cache = inputs to it }
+        }
+
+        override val value: R get() = compute(sources.map { it.value })
 
         @Suppress("UNCHECKED_CAST")
         override fun provideFlow(): Flow<R> =
-            combine(sources.map { it.provideFlow() }) { values -> mapper(values.toList()) }
+            combine(sources.map { it.provideFlow() }) { values -> compute(values.toList()) }
     }
 }
