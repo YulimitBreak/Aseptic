@@ -71,7 +71,11 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
     )
 
     private class StaticFieldState<T>(override val value: T) : FieldState<T>() {
-        override val flow by lazy { MutableStateFlow(value) }
+
+        private val flow by lazy { MutableStateFlow(value) }
+
+        override fun provideFlow() = flow
+
     }
 
     /**

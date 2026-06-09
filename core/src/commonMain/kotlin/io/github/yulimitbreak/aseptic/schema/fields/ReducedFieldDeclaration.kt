@@ -5,6 +5,7 @@ package io.github.yulimitbreak.aseptic.schema.fields
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -36,10 +37,15 @@ class ReducedFieldDeclaration<T, U> internal constructor(
         initial: T,
         private val reducer: (T, U) -> T,
     ) : UpdatableFieldState<T, U, U>() {
-        override val flow = MutableStateFlow(initial)
+
+        override val value: T get() = stateFlow.value
+
+        override fun provideFlow(): Flow<T> = stateFlow
+
+        private val stateFlow = MutableStateFlow(initial)
 
         override fun doUpdate(update: U): U {
-            flow.update { reducer(it, update) }
+            stateFlow.update { reducer(it, update) }
             return update
         }
     }

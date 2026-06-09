@@ -1,6 +1,6 @@
 package io.github.yulimitbreak.aseptic.state
 
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 
 /**
@@ -17,10 +17,9 @@ import kotlinx.coroutines.sync.Mutex
  */
 internal abstract class FieldState<out T> {
 
-    // TODO replace with calculating values on access/from UncheckedMap
-    abstract val flow: StateFlow<T>
+    abstract fun provideFlow(): Flow<T>
 
-    open val value: T get() = flow.value
+    abstract val value: T
 }
 
 /**

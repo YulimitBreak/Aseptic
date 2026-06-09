@@ -7,11 +7,9 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 import io.github.yulimitbreak.aseptic.util.ImmutableQueue
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 
 /**
@@ -38,14 +36,14 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
     override fun convert(
         fields: StateContainerBuilder.FieldMap,
         coroutineScope: CoroutineScope,
-    ): FieldState<T?> = State(coroutineScope)
+    ): FieldState<T?> = State()
 
-    private class State<T : Any>(coroutineScope: CoroutineScope) : UpdatableFieldState<T?, Update<T>, Unit>() {
+    private class State<T : Any> : UpdatableFieldState<T?, Update<T>, Unit>() {
         private val queueFlow = MutableStateFlow<ImmutableQueue<T>>(ImmutableQueue())
 
-        override val flow: StateFlow<T?> = queueFlow
-            .map { it.next }
-            .stateIn(coroutineScope, SharingStarted.Eagerly, null)
+        override val value: T? get() = queueFlow.value.next
+
+        override fun provideFlow(): Flow<T?> = queueFlow.map { it.next }
 
         override fun doUpdate(update: Update<T>) {
             when (update) {

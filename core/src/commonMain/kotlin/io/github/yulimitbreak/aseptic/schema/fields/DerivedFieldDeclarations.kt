@@ -6,11 +6,8 @@ import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.SharingStarted
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.stateIn
 
 /**
  * Declaration of a read-only field whose value is computed from one source field.
@@ -24,16 +21,16 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
     internal val mapper: (T1) -> R,
 ) : FieldDeclaration<R>() {
     override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(fields[source1].flow, mapper, coroutineScope)
+        State(fields[source1], mapper)
 
     private class State<T1, R>(
-        sourceFlow: StateFlow<T1>,
-        mapper: (T1) -> R,
-        coroutineScope: CoroutineScope,
+        private val source: FieldState<T1>,
+        private val mapper: (T1) -> R,
     ) : FieldState<R>() {
-        override val flow: StateFlow<R> = sourceFlow
-            .map(mapper)
-            .stateIn(coroutineScope, SharingStarted.Eagerly, mapper(sourceFlow.value))
+
+        override val value: R get() = mapper(source.value)
+
+        override fun provideFlow(): Flow<R> = source.provideFlow().map(mapper)
     }
 }
 
@@ -51,16 +48,17 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
     internal val mapper: (T1, T2) -> R,
 ) : FieldDeclaration<R>() {
     override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(fields[source1].flow, fields[source2].flow, mapper, coroutineScope)
+        State(fields[source1], fields[source2], mapper)
 
     private class State<T1, T2, R>(
-        flow1: StateFlow<T1>,
-        flow2: StateFlow<T2>,
-        mapper: (T1, T2) -> R,
-        coroutineScope: CoroutineScope,
+        private val source1: FieldState<T1>,
+        private val source2: FieldState<T2>,
+        private val mapper: (T1, T2) -> R,
     ) : FieldState<R>() {
-        override val flow: StateFlow<R> = combine(flow1, flow2, mapper)
-            .stateIn(coroutineScope, SharingStarted.Eagerly, mapper(flow1.value, flow2.value))
+
+        override val value: R get() = mapper(source1.value, source2.value)
+
+        override fun provideFlow(): Flow<R> = combine(source1.provideFlow(), source2.provideFlow(), mapper)
     }
 }
 
@@ -78,18 +76,21 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
     internal val source3: FieldDeclaration<T3>,
     internal val mapper: (T1, T2, T3) -> R,
 ) : FieldDeclaration<R>() {
+
     override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(fields[source1].flow, fields[source2].flow, fields[source3].flow, mapper, coroutineScope)
+        State(fields[source1], fields[source2], fields[source3], mapper)
 
     private class State<T1, T2, T3, R>(
-        flow1: StateFlow<T1>,
-        flow2: StateFlow<T2>,
-        flow3: StateFlow<T3>,
-        mapper: (T1, T2, T3) -> R,
-        coroutineScope: CoroutineScope,
+        private val source1: FieldState<T1>,
+        private val source2: FieldState<T2>,
+        private val source3: FieldState<T3>,
+        private val mapper: (T1, T2, T3) -> R,
     ) : FieldState<R>() {
-        override val flow: StateFlow<R> = combine(flow1, flow2, flow3, mapper)
-            .stateIn(coroutineScope, SharingStarted.Eagerly, mapper(flow1.value, flow2.value, flow3.value))
+
+        override val value: R get() = mapper(source1.value, source2.value, source3.value)
+
+        override fun provideFlow(): Flow<R> =
+            combine(source1.provideFlow(), source2.provideFlow(), source3.provideFlow(), mapper)
     }
 }
 
@@ -111,17 +112,19 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
     @Suppress("UNCHECKED_CAST")
     override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
         State(
-            sourceFlows = sources.map { fields[it] } as List<Flow<Any?>>,
+            sources = sources.map { fields[it] } as List<FieldState<Any?>>,
             mapper = mapper as (List<Any?>) -> R,
-            coroutineScope = coroutineScope,
         )
 
     private class State<R>(
-        sourceFlows: List<Flow<Any?>>,
-        mapper: (List<Any?>) -> R,
-        coroutineScope: CoroutineScope,
+        private val sources: List<FieldState<Any?>>,
+        private val mapper: (List<Any?>) -> R,
     ) : FieldState<R>() {
-        override val flow: StateFlow<R> = combine(sourceFlows) { values -> mapper(values.toList()) }
-            .stateIn(coroutineScope, SharingStarted.Eagerly, mapper(sourceFlows.map { (it as StateFlow<Any?>).value }))
+
+        override val value: R get() = mapper(sources.map { it.value })
+
+        @Suppress("UNCHECKED_CAST")
+        override fun provideFlow(): Flow<R> =
+            combine(sources.map { it.provideFlow() }) { values -> mapper(values.toList()) }
     }
 }

@@ -31,7 +31,7 @@ class StateContainer internal constructor(
     private val uiCombined = fields
         .filter { (key, _) -> uiFields.contains(key) }
         .map { (name, field) ->
-            field.flow.map { name to it }
+            field.provideFlow().map { name to it }
         }.let { flows ->
             combine(flows) { entries ->
                 UncheckedMapWrapper(entries.toMap())
@@ -58,7 +58,7 @@ class StateContainer internal constructor(
      *
      * Performs an unchecked cast, should be used only in generated code.
      */
-    fun <T> asFlow(name: String): Flow<T> = fields[name]?.flow as Flow<T>
+    fun <T> asFlow(name: String): Flow<T> = fields[name]?.provideFlow() as Flow<T>
 
     /**
      * Applies [update] to a single updatable field under its field mutex.
@@ -66,7 +66,7 @@ class StateContainer internal constructor(
      * Performs an unchecked cast, should be used only in generated code.
      */
     suspend fun <U> update(name: String, update: U) {
-        (fields[name] as UpdatableFieldState<*, U>).let { field ->
+        (fields[name] as UpdatableFieldState<*, U, *>).let { field ->
             field.lock()
             try {
                 field.update(update)
@@ -100,7 +100,7 @@ class StateContainer internal constructor(
                 suspend fun write() {
                     consistencyMutex.withLock {
                         writes.forEach { (key, value) ->
-                            (fields[key] as UpdatableFieldState<*, Any?>).update(value)
+                            (fields[key] as UpdatableFieldState<*, Any?, *>).update(value)
                         }
                     }
                 }
@@ -148,7 +148,7 @@ class StateContainer internal constructor(
         if (this.isEmpty()) {
             return block()
         }
-        val fields = lockingOrder.filter { it in this }.map { fields[it] as UpdatableFieldState<*, *> }
+        val fields = lockingOrder.filter { it in this }.map { fields[it] as UpdatableFieldState<*, *, *> }
         fields.forEach { it.lock() }
         try {
             return block()
