@@ -3,11 +3,9 @@
 package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.state.FieldState
+import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 
 /**
  * Declaration of a read-only field whose value is computed from one source field.
@@ -38,7 +36,10 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
 
         override val value: R get() = compute(source.value)
 
-        override fun provideFlow(): Flow<R> = source.provideFlow().map(::compute)
+        override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
+            source.buildSnapshotFlow(snapshotFlowBuilder)
+            snapshotFlowBuilder.addMapper(this) { map -> compute(map[source]) }
+        }
     }
 }
 
@@ -75,8 +76,11 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
 
         override val value: R get() = compute(source1.value, source2.value)
 
-        override fun provideFlow(): Flow<R> =
-            combine(source1.provideFlow(), source2.provideFlow(), ::compute)
+        override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
+            source1.buildSnapshotFlow(snapshotFlowBuilder)
+            source2.buildSnapshotFlow(snapshotFlowBuilder)
+            snapshotFlowBuilder.addMapper(this) { map -> compute(map[source1], map[source2]) }
+        }
     }
 }
 
@@ -122,8 +126,12 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
 
         override val value: R get() = compute(source1.value, source2.value, source3.value)
 
-        override fun provideFlow(): Flow<R> =
-            combine(source1.provideFlow(), source2.provideFlow(), source3.provideFlow(), ::compute)
+        override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
+            source1.buildSnapshotFlow(snapshotFlowBuilder)
+            source2.buildSnapshotFlow(snapshotFlowBuilder)
+            source3.buildSnapshotFlow(snapshotFlowBuilder)
+            snapshotFlowBuilder.addMapper(this) { map -> compute(map[source1], map[source2], map[source3]) }
+        }
     }
 }
 
@@ -164,8 +172,9 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
 
         override val value: R get() = compute(sources.map { it.value })
 
-        @Suppress("UNCHECKED_CAST")
-        override fun provideFlow(): Flow<R> =
-            combine(sources.map { it.provideFlow() }) { values -> compute(values.toList()) }
+        override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
+            sources.forEach { it.buildSnapshotFlow(snapshotFlowBuilder) }
+            snapshotFlowBuilder.addMapper(this) { map -> compute(sources.map { map[it] }) }
+        }
     }
 }

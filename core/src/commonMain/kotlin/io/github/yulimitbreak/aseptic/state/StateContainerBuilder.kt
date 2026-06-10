@@ -3,8 +3,6 @@ package io.github.yulimitbreak.aseptic.state
 import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Wires all field declarations in a schema into a [StateContainer].
@@ -72,9 +70,9 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
 
     private class StaticFieldState<T>(override val value: T) : FieldState<T>() {
 
-        private val flow by lazy { MutableStateFlow(value) }
-
-        override fun provideFlow() = flow
+        override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
+            snapshotFlowBuilder.addMapper(this) { value }
+        }
     }
 
     /**

@@ -2,10 +2,10 @@
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
+import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -38,7 +38,9 @@ class MutableValueFieldDeclaration<T> internal constructor(
 
         override val value: T get() = stateFlow.value
 
-        override fun provideFlow(): Flow<T> = stateFlow
+        override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
+            snapshotFlowBuilder.addSource(this, stateFlow)
+        }
 
         private val stateFlow = MutableStateFlow(initial)
     }

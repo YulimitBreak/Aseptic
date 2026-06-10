@@ -60,4 +60,14 @@ internal class SnapshotFlowBuilder {
 
         class Gate(val open: Boolean) : SourceOrGate
     }
+
+    companion object {
+        internal fun of(
+            vararg states: FieldState<*>,
+        ): SnapshotFlowBuilder {
+            val builder = SnapshotFlowBuilder()
+            states.forEach { it.buildSnapshotFlow(builder) }
+            return builder
+        }
+    }
 }

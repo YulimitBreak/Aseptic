@@ -1,6 +1,5 @@
 package io.github.yulimitbreak.aseptic.state
 
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.sync.Mutex
 
 /**
@@ -17,7 +16,14 @@ import kotlinx.coroutines.sync.Mutex
  */
 internal abstract class FieldState<out T> {
 
-    abstract fun provideFlow(): Flow<T>
+    /**
+     * Construct [SnapshotFlowBuilder] from current state
+     *
+     * Implementation should call [buildSnapshotFlow] on FieldStates that this state depends on **before**
+     * adding current state as a mapper
+     * Calculation in mappers should use cache, as this can be called on every source field update
+     */
+    abstract fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder)
 
     abstract val value: T
 }

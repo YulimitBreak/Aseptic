@@ -3,11 +3,11 @@
 package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.state.FieldState
+import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 import io.github.yulimitbreak.aseptic.util.ImmutableQueue
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -46,7 +46,9 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
 
         override val value: T? get() = queueFlow.value.next
 
-        override fun provideFlow(): Flow<T?> = queueFlow.map { it.next }
+        override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
+            snapshotFlowBuilder.addSource(this, queueFlow.map { it.next })
+        }
 
         override fun doUpdate(update: Update<T>) {
             when (update) {
