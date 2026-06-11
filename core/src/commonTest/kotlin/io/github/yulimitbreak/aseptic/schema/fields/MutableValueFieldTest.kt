@@ -7,7 +7,7 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
-class MutableValueFieldDeclarationTest : BehaviorSpec() {
+class MutableValueFieldTest : BehaviorSpec() {
 
     init {
         Given("a mutable Int field") {

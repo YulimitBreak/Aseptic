@@ -16,7 +16,7 @@ import io.kotest.matchers.shouldBe
 private fun <T : Any> FieldState<T?>.asMessageState() =
     this as UpdatableFieldState<T?, MessageFieldDeclaration.Update<T>, Unit>
 
-class MessageFieldDeclarationTest : BehaviorSpec() {
+class MessageFieldTest : BehaviorSpec() {
 
     init {
         Given("a message field of type String") {

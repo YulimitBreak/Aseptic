@@ -8,7 +8,7 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
-class Derived3FieldDeclarationTest : BehaviorSpec() {
+class Derived3FieldTest : BehaviorSpec() {
 
     init {
         Given("a derived field combining three Int sources with a sum") {

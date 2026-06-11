@@ -8,7 +8,7 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
-class LinkedFieldDeclarationTest : BehaviorSpec() {
+class LinkedFieldTest : BehaviorSpec() {
 
     init {
         Given("a reduced accumulator linked to a reduced source with identity mapper") {

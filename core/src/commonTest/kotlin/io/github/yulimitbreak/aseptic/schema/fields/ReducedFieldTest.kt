@@ -7,7 +7,7 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
-class ReducedFieldDeclarationTest : BehaviorSpec() {
+class ReducedFieldTest : BehaviorSpec() {
 
     init {
         Given("a reduced Int field with an additive reducer") {

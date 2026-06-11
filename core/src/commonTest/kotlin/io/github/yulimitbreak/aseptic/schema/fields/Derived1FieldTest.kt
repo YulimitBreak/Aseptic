@@ -8,7 +8,7 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
-class Derived1FieldDeclarationTest : BehaviorSpec() {
+class Derived1FieldTest : BehaviorSpec() {
 
     init {
         Given("a derived field mapping an Int source with a doubling function") {
