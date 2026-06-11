@@ -38,7 +38,6 @@ class SnapshotFlowBuilderGraphTest : BehaviorSpec() {
             When("snapshot flow is built for all derived fields") {
                 Then("each snapshot entry matches its pull-based value before and after mutations") {
 
-
                     checkAll(graphArb().withSubset()) { (graph, selection) ->
                         val scope = CoroutineScope(coroutineContext + Job())
                         val builder = SnapshotFlowBuilder()
@@ -96,7 +95,6 @@ class SnapshotFlowBuilderGraphTest : BehaviorSpec() {
 
     private sealed interface Field {
 
-
         val name: String
         val getter: () -> Int
         val buildFlow: (SnapshotFlowBuilder) -> Unit
@@ -118,7 +116,7 @@ class SnapshotFlowBuilderGraphTest : BehaviorSpec() {
 
     private class Graph(
         val sources: List<Field.Source>,
-        val mappers: List<Field.Mapping>,
+        mappers: List<Field.Mapping>,
     ) {
         val full = sources + mappers
     }

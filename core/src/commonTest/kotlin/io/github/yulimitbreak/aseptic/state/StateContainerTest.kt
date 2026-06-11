@@ -3,6 +3,7 @@
 package io.github.yulimitbreak.aseptic.state
 
 import io.github.yulimitbreak.aseptic.schema.fields.Derived1FieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MutableValueFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
 import io.kotest.assertions.assertSoftly
@@ -96,6 +97,22 @@ class StateContainerTest : BehaviorSpec() {
                     container.update<(Int) -> Int>("source") { 5 }
                     testCoroutineScheduler.advanceUntilIdle()
                     container.get<Int>("squared") shouldBe 25
+                    scope.cancel()
+                }
+            }
+
+            When("generateSnapshot specifies the derived field in lockRequest") {
+                Then("snapshot reflects the correct derived value") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = buildContainer {
+                        addField("source", false, sourceDecl)
+                        addField("derived", false, squaredDecl)
+                    }
+                    container.update<(Int) -> Int>("source") { 4 }
+                    val snapshot = container.generateSnapshot(setOf("derived")) { map ->
+                        map.get<Int>("derived")
+                    }
+                    snapshot shouldBe 16
                     scope.cancel()
                 }
             }
@@ -396,6 +413,29 @@ class StateContainerTest : BehaviorSpec() {
                         uiFlow.value.first shouldBe 10
                         uiFlow.value.second shouldBe 20
                     }
+                    scope.cancel()
+                }
+            }
+        }
+
+        Given("a container with two mutables and a derived field combining both") {
+            val aDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
+            val bDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
+            val derivedDecl = Derived2FieldDeclaration(aDecl, bDecl) { a, b -> a + b }
+
+            When("generateSnapshot specifies the derived field in lockRequest") {
+                Then("snapshot reflects the consistent combined value") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = buildContainer {
+                        addField("a", false, aDecl)
+                        addField("b", false, bDecl)
+                        addField("derived", false, derivedDecl)
+                    }
+                    container.updateAtomic(emptySet()) { mapOf("a" to 3, "b" to 7) }
+                    val snapshot = container.generateSnapshot(setOf("derived")) { map ->
+                        map.get<Int>("derived")
+                    }
+                    snapshot shouldBe 10
                     scope.cancel()
                 }
             }
