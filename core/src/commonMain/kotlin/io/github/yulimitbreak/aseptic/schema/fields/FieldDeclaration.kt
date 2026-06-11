@@ -5,7 +5,6 @@ package io.github.yulimitbreak.aseptic.schema.fields
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * Base class for all field declarations in an [io.github.yulimitbreak.aseptic.schema.AsepticSchema].
@@ -21,7 +20,6 @@ abstract class FieldDeclaration<out T> internal constructor() {
     internal abstract fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope
     ): FieldState<T>
 }
 
@@ -39,6 +37,5 @@ abstract class LinkableFieldDeclaration<out T, in Update, out LinkableUpdate> in
     abstract override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope
     ): UpdatableFieldState<T, Update, LinkableUpdate>
 }

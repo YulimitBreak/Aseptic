@@ -7,7 +7,6 @@ import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 import io.github.yulimitbreak.aseptic.util.ImmutableQueue
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
@@ -39,7 +38,6 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope,
     ): FieldState<T?> = State(name)
 
     private class State<T : Any>(name: String) : UpdatableFieldState<T?, Update<T>, Unit>(name) {

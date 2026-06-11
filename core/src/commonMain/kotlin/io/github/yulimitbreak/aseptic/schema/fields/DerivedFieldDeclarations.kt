@@ -5,7 +5,6 @@ package io.github.yulimitbreak.aseptic.schema.fields
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * Declaration of a read-only field whose value is computed from one source field.
@@ -20,7 +19,6 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope,
     ): FieldState<R> =
         State(name, fields[source1], mapper)
 
@@ -61,7 +59,6 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope,
     ): FieldState<R> =
         State(name, fields[source1], fields[source2], mapper)
 
@@ -107,7 +104,6 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope,
     ): FieldState<R> =
         State(name, fields[source1], fields[source2], fields[source3], mapper)
 
@@ -161,7 +157,6 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope,
     ): FieldState<R> =
         State(
             name = name,

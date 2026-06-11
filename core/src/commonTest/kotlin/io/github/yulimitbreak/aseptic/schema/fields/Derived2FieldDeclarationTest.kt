@@ -1,74 +1,56 @@
-@file:OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class, io.github.yulimitbreak.aseptic.AsepticInternal::class)
+@file:OptIn(io.github.yulimitbreak.aseptic.AsepticInternal::class)
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
-import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.flowMapWith
+import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.fieldMapWith
+import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.withTryLock
+import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
-import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.shouldBe
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
-import kotlinx.coroutines.flow.MutableStateFlow
 
 class Derived2FieldDeclarationTest : BehaviorSpec() {
 
     init {
-        coroutineTestScope = true
-
         Given("a derived field combining two Int sources with a sum") {
             val decl1 = MutableValueFieldDeclaration(3)
             val decl2 = MutableValueFieldDeclaration(7)
             val declaration = Derived2FieldDeclaration(decl1, decl2) { a, b -> a + b }
 
             Then("initial value is computed from both sources") {
-                val scope = CoroutineScope(coroutineContext + Job())
-                val state = declaration.convert(
-                    flowMapWith(decl1 to MutableStateFlow(3), decl2 to MutableStateFlow(7)),
-                    scope
-                )
+                val s1 = decl1.convert("s1", StateContainerBuilder.FieldMap())
+                val s2 = decl2.convert("s2", StateContainerBuilder.FieldMap())
+                val state = declaration.convert("derived", fieldMapWith(decl1 to s1, decl2 to s2))
                 state.value shouldBe 10
-                state.flow.value shouldBe 10
-                scope.cancel()
             }
 
             When("source1 updates") {
                 Then("derived reflects latest source1") {
-                    val scope = CoroutineScope(coroutineContext + Job())
-                    val flow1 = MutableStateFlow(3)
-                    val flow2 = MutableStateFlow(7)
-                    val state = declaration.convert(flowMapWith(decl1 to flow1, decl2 to flow2), scope)
-                    flow1.value = 10
-                    testCoroutineScheduler.advanceUntilIdle()
-                    state.flow.value shouldBe 17
-                    scope.cancel()
+                    val s1 = decl1.convert("s1", StateContainerBuilder.FieldMap())
+                    val s2 = decl2.convert("s2", StateContainerBuilder.FieldMap())
+                    val state = declaration.convert("derived", fieldMapWith(decl1 to s1, decl2 to s2))
+                    s1.withTryLock { update { 10 } }
+                    state.value shouldBe 17
                 }
             }
 
             When("source2 updates") {
                 Then("derived reflects latest source2") {
-                    val scope = CoroutineScope(coroutineContext + Job())
-                    val flow1 = MutableStateFlow(3)
-                    val flow2 = MutableStateFlow(7)
-                    val state = declaration.convert(flowMapWith(decl1 to flow1, decl2 to flow2), scope)
-                    flow2.value = 100
-                    testCoroutineScheduler.advanceUntilIdle()
-                    state.flow.value shouldBe 103
-                    scope.cancel()
+                    val s1 = decl1.convert("s1", StateContainerBuilder.FieldMap())
+                    val s2 = decl2.convert("s2", StateContainerBuilder.FieldMap())
+                    val state = declaration.convert("derived", fieldMapWith(decl1 to s1, decl2 to s2))
+                    s2.withTryLock { update { 100 } }
+                    state.value shouldBe 103
                 }
             }
 
             When("both sources update") {
                 Then("derived reflects sum of latest values") {
-                    val scope = CoroutineScope(coroutineContext + Job())
-                    val flow1 = MutableStateFlow(3)
-                    val flow2 = MutableStateFlow(7)
-                    val state = declaration.convert(flowMapWith(decl1 to flow1, decl2 to flow2), scope)
-                    flow1.value = 20
-                    flow2.value = 30
-                    testCoroutineScheduler.advanceUntilIdle()
-                    state.flow.value shouldBe 50
-                    scope.cancel()
+                    val s1 = decl1.convert("s1", StateContainerBuilder.FieldMap())
+                    val s2 = decl2.convert("s2", StateContainerBuilder.FieldMap())
+                    val state = declaration.convert("derived", fieldMapWith(decl1 to s1, decl2 to s2))
+                    s1.withTryLock { update { 20 } }
+                    s2.withTryLock { update { 30 } }
+                    state.value shouldBe 50
                 }
             }
         }
@@ -79,13 +61,10 @@ class Derived2FieldDeclarationTest : BehaviorSpec() {
             val declaration = Derived2FieldDeclaration(decl1, decl2) { a, b -> "$a$b" }
 
             Then("initial value is computed from both sources") {
-                val scope = CoroutineScope(coroutineContext + Job())
-                val state = declaration.convert(
-                    flowMapWith(decl1 to MutableStateFlow("foo"), decl2 to MutableStateFlow("bar")),
-                    scope
-                )
+                val s1 = decl1.convert("s1", StateContainerBuilder.FieldMap())
+                val s2 = decl2.convert("s2", StateContainerBuilder.FieldMap())
+                val state = declaration.convert("derived", fieldMapWith(decl1 to s1, decl2 to s2))
                 state.value shouldBe "foobar"
-                scope.cancel()
             }
         }
     }

@@ -2,7 +2,6 @@ package io.github.yulimitbreak.aseptic.state
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * Wires all field declarations in a schema into a [StateContainer].
@@ -11,7 +10,7 @@ import kotlinx.coroutines.CoroutineScope
  * schema member in **declaration order**, then call [build] to produce the live [StateContainer].
  */
 @AsepticInternal
-class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
+class StateContainerBuilder {
 
     private val fields = mutableMapOf<String, FieldState<*>>()
 
@@ -40,7 +39,7 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
      * order to lock fields without deadlocks
      */
     fun <T> addField(name: String, uiVisible: Boolean, field: FieldDeclaration<T>) {
-        val state = field.convert(name, fieldMap, coroutineScope)
+        val state = field.convert(name, fieldMap)
         fields[name] = state
         if (state is UpdatableFieldState<*, *, *>) {
             lockingOrder += name

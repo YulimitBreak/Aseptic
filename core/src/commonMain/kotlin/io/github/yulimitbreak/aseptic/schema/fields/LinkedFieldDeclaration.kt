@@ -4,7 +4,6 @@ package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
-import kotlinx.coroutines.CoroutineScope
 
 /**
  * A [LinkableFieldDeclaration] that automatically receives updates from a source field.
@@ -25,9 +24,8 @@ class LinkedFieldDeclaration<out T, Update, out LinkableUpdate> internal constru
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope
     ): UpdatableFieldState<T, Update, LinkableUpdate> {
-        val state = original.convert(name, fields, coroutineScope)
+        val state = original.convert(name, fields)
         link.registerUpdate(
             fields,
             state

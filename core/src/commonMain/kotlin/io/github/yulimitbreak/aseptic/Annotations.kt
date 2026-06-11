@@ -64,11 +64,11 @@ annotation class Ui(
  * Marks a function in the generated state handle as an Aseptic operation.
  *
  * Operations are fire-and-forget `suspend` extension functions on the generated handle class
- * (a subclass of [io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle]). Inside an operation,
+ * (a subclass of [BaseAsepticHandle][io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle]). Inside an operation,
  * `this` is the handle - giving access to all `@Model`-annotated fields for reading and writing,
  * as well as `snapshot {}` and `atomic {}` scopes for consistent multi-field reads and writes.
  *
- * Each operation is dispatched through an [io.github.yulimitbreak.aseptic.runner.OperationRunner]
+ * Each operation is dispatched through an [OperationRunner][io.github.yulimitbreak.aseptic.runner.OperationRunner]
  * which enforces the chosen [dispatchPolicy] relative to other running instances of the same operation.
  *
  *

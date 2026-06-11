@@ -5,7 +5,6 @@ package io.github.yulimitbreak.aseptic.schema.fields
 import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -22,7 +21,6 @@ class MutableValueFieldDeclaration<T> internal constructor(
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-        coroutineScope: CoroutineScope
     ): UpdatableFieldState<T, (T) -> T, T> = State(name, initial)
 
     private class State<T>(
