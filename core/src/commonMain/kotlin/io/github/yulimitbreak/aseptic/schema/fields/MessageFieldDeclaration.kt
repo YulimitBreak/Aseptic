@@ -18,8 +18,8 @@ import kotlinx.coroutines.flow.update
  * Operations enqueue messages under a mutex; the UI dequeues and consumes them.
  * This ensures no message is lost even if the UI is not currently collecting.
  *
- * It is a [FieldDeclaration] rather than a [LinkableFieldDeclaration] by design: message fields
- * cannot participate in the field hierarchy.
+ * It is a [FieldDeclaration] rather than a [TrackingCapableFieldDeclaration] by design: message fields
+ * cannot participate in the field hierarchy in any way.
  *
  * @param T the type of the message. Must be non-null.
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.message

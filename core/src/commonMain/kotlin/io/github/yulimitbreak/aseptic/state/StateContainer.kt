@@ -23,7 +23,7 @@ import kotlinx.coroutines.sync.withLock
 @AsepticInternal
 class StateContainer internal constructor(
     private val fields: Map<String, FieldState<*>>,
-    private val lockingOrder: List<String>,
+    private val lockingOrder: List<UpdatableFieldState<*, *, *>>,
     uiFields: Set<String>,
 ) : UncheckedMap<String> {
 
@@ -151,7 +151,11 @@ class StateContainer internal constructor(
         if (this.isEmpty()) {
             return block()
         }
-        val fields = lockingOrder.filter { it in this }.map { fields[it] as UpdatableFieldState<*, *, *> }
+        val fields = this.flatMapTo(mutableSetOf()) {
+            fields.getValue(it).getUpdateSources()
+        }.let { states ->
+            lockingOrder.filter { it in states }
+        }
         fields.forEach { it.lock() }
         try {
             return block()

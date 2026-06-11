@@ -14,7 +14,7 @@ class StateContainerBuilder {
 
     private val fields = mutableMapOf<String, FieldState<*>>()
 
-    private val lockingOrder = mutableListOf<String>()
+    private val lockingOrder = mutableListOf<UpdatableFieldState<*, *, *>>()
 
     private val fieldMap = FieldMap()
 
@@ -41,8 +41,8 @@ class StateContainerBuilder {
     fun <T> addField(name: String, uiVisible: Boolean, field: FieldDeclaration<T>) {
         val state = field.convert(name, fieldMap)
         fields[name] = state
-        if (state is UpdatableFieldState<*, *, *>) {
-            lockingOrder += name
+        if (state is UpdatableFieldState<*, *, *> && state.isLockable) {
+            lockingOrder += state
         }
         fieldMap[field] = state
         if (uiVisible) uiFields += name

@@ -153,8 +153,11 @@ class ImmutableQueueTest : BehaviorSpec() {
         Given("An arbitrary interleaved sequence of enqueue and dequeue operations") {
             Then("queue state matches a reference ArrayDeque at every step") {
                 val opArb = Arb.boolean().flatMap { enqueue ->
-                    if (enqueue) Arb.int().map { Op.Enqueue(it) }
-                    else Arb.constant(Op.Dequeue)
+                    if (enqueue) {
+                        Arb.int().map { Op.Enqueue(it) }
+                    } else {
+                        Arb.constant(Op.Dequeue)
+                    }
                 }
                 checkAll(Arb.list(opArb, 0..100)) { ops ->
                     val reference = ArrayDeque<Int>()

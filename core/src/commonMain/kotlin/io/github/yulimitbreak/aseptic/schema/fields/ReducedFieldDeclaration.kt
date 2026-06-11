@@ -24,18 +24,25 @@ import kotlinx.coroutines.flow.update
 class ReducedFieldDeclaration<T, U> internal constructor(
     internal val initial: T,
     internal val update: (old: T, update: U) -> T,
-) : LinkableFieldDeclaration<T, U, U>() {
+) : TrackingCapableFieldDeclaration<T, U, U>() {
+
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
     ): UpdatableFieldState<T, U, U> =
-        State(name, initial, update)
+        State(name, isLockable = true, initial, update)
+
+    override fun convertForTracking(
+        name: String,
+        fields: StateContainerBuilder.FieldMap
+    ): UpdatableFieldState<T, U, U> = State(name, isLockable = false, initial, update)
 
     private class State<T, U>(
         name: String,
+        isLockable: Boolean,
         initial: T,
         private val reducer: (T, U) -> T,
-    ) : UpdatableFieldState<T, U, U>(name) {
+    ) : UpdatableFieldState<T, U, U>(name, isLockable) {
 
         override val value: T get() = stateFlow.value
 

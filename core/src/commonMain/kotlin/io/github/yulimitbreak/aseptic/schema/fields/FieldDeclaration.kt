@@ -24,18 +24,35 @@ abstract class FieldDeclaration<out T> internal constructor() {
 }
 
 /**
- * A [FieldDeclaration] that produces an [UpdatableFieldState], and can be linked to other fields via
- * [linkedTo][io.github.yulimitbreak.aseptic.schema.AsepticSchema.linkedTo] and be a target of linking by other fields.
+ * A [FieldDeclaration] that produces an [UpdatableFieldState], and can be a source for tracking fields
+ * via [tracking][io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking]
  *
  * @param T the type of the field value.
  * @param Update the type of the write message.
- * @param LinkableUpdate the value propagated to linked fields after each write.
+ * @param TrackableUpdate the value propagated to tracking fields after each write.
  */
-abstract class LinkableFieldDeclaration<out T, in Update, out LinkableUpdate> internal constructor() :
+abstract class TrackableFieldDeclaration<out T, in Update, out TrackableUpdate> internal constructor() :
     FieldDeclaration<T>() {
 
     abstract override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-    ): UpdatableFieldState<T, Update, LinkableUpdate>
+    ): UpdatableFieldState<T, Update, TrackableUpdate>
+}
+
+/**
+ * A [TrackableFieldDeclaration] that can also be a target of tracking, meaning it can wrap
+ * an original field declaration and receive updates via [tracking][io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking].
+ *
+ * @param T the type of the field value.
+ * @param Update the type of the write message.
+ * @param TrackableUpdate the value propagated to tracking fields after each write.
+ */
+abstract class TrackingCapableFieldDeclaration<out T, in Update, out TrackableUpdate> internal constructor() :
+    TrackableFieldDeclaration<T, Update, TrackableUpdate>() {
+
+    internal abstract fun convertForTracking(
+        name: String,
+        fields: StateContainerBuilder.FieldMap,
+    ): UpdatableFieldState<T, Update, TrackableUpdate>
 }

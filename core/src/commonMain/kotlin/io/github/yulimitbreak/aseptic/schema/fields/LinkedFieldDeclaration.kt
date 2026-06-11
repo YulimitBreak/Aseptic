@@ -6,53 +6,42 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 
 /**
- * A [LinkableFieldDeclaration] that automatically receives updates from a source field.
+ * A [TrackableFieldDeclaration] that automatically receives updates from a source field.
  *
  * Wraps an [original] field and registers a callback on a source field so that every time
  * the source is written, it updates the wrapped field.
  *
  * @param T the type of the field value.
- * @param LinkableUpdate the value propagated to linked fields after each write; inherited from the wrapped field.
- * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.linkedTo
+ * @param TrackedUpdate the value propagated to tracking fields after each write; inherited from the wrapped field.
+ * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking
  */
-class LinkedFieldDeclaration<out T, Update, out LinkableUpdate> internal constructor(
-    private val original: LinkableFieldDeclaration<T, Update, LinkableUpdate>,
+class TrackingFieldDeclaration<out T, Update, out TrackedUpdate> internal constructor(
+    private val original: TrackingCapableFieldDeclaration<T, Update, TrackedUpdate>,
     private val link: Link<*, Update>
-) : LinkableFieldDeclaration<T, Nothing, LinkableUpdate>() {
-    // Nothing as the update type prevents the field from being linked to multiple sources or updated manually
+) : TrackableFieldDeclaration<T, Nothing, TrackedUpdate>() {
 
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-    ): UpdatableFieldState<T, Update, LinkableUpdate> {
-        val state = original.convert(name, fields)
-        link.registerUpdate(
-            fields,
-            state
-        )
+    ): UpdatableFieldState<T, Nothing, TrackedUpdate> {
+        val state = original.convertForTracking(name, fields)
+        link.registerUpdate(fields, state)
         return state
     }
 
     @Suppress("UNCHECKED_CAST")
     internal class Link<SourceUpdate, FieldUpdate>(
-        val source: LinkableFieldDeclaration<*, *, SourceUpdate>,
+        val source: TrackableFieldDeclaration<*, *, SourceUpdate>,
         val mapper: (SourceUpdate) -> FieldUpdate
     ) {
         fun registerUpdate(
             fields: StateContainerBuilder.FieldMap,
             target: UpdatableFieldState<*, FieldUpdate, *>
         ) {
+            check(!target.isLockable) { "Inner field should not be lockable" }
             val sourceState = fields[source] as UpdatableFieldState<*, *, SourceUpdate>
             sourceState.addUpdateCallback { output ->
-                with(target) {
-                    check(tryLock()) { "Field was accessed outside of linking context" }
-                    // field should never be updated manually, so it shouldn't happen
-                    try {
-                        update(mapper(output))
-                    } finally {
-                        unlock()
-                    }
-                }
+                target.update(mapper(output))
             }
         }
     }

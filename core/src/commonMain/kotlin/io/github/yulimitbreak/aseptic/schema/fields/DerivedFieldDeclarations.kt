@@ -28,6 +28,8 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
         private val mapper: (T1) -> R,
     ) : FieldState<R>(name) {
 
+        override val dependencies: Set<FieldState<*>> = setOf(source)
+
         private var cache: Pair<T1, R> = source.value.let { it to mapper(it) }
 
         private fun compute(s1: T1): R {
@@ -68,6 +70,8 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
         private val source2: FieldState<T2>,
         private val mapper: (T1, T2) -> R,
     ) : FieldState<R>(name) {
+
+        override val dependencies = setOf(source1, source2)
 
         private var cache: Triple<T1, T2, R> =
             Triple(source1.value, source2.value, mapper(source1.value, source2.value))
@@ -114,6 +118,8 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
         private val source3: FieldState<T3>,
         private val mapper: (T1, T2, T3) -> R,
     ) : FieldState<R>(name) {
+
+        override val dependencies = setOf(source1, source2, source3)
 
         private data class Cache<T1, T2, T3, R>(val s1: T1, val s2: T2, val s3: T3, val result: R)
 
@@ -169,6 +175,8 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
         private val sources: List<FieldState<Any?>>,
         private val mapper: (List<Any?>) -> R,
     ) : FieldState<R>(name) {
+
+        override val dependencies = sources.toSet()
 
         private var cache: Pair<List<Any?>, R> = sources.map { it.value }.let { it to mapper(it) }
 

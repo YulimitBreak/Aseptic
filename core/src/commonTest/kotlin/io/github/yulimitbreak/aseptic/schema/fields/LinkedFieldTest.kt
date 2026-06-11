@@ -11,107 +11,111 @@ import io.kotest.matchers.shouldBe
 class LinkedFieldTest : BehaviorSpec() {
 
     init {
-        Given("a reduced accumulator linked to a reduced source with identity mapper") {
+        Given("a reduced accumulator tracking a reduced source with identity mapper") {
             val sourceDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
             val wrappedDecl = ReducedFieldDeclaration(0) { acc, u: Int -> acc + u }
-            val linkedDecl = LinkedFieldDeclaration(wrappedDecl, LinkedFieldDeclaration.Link(sourceDecl) { it })
+            val trackingDecl = TrackingFieldDeclaration(wrappedDecl, TrackingFieldDeclaration.Link(sourceDecl) { it })
 
             Then("initial value matches the wrapped field initial") {
                 val sourceState = sourceDecl.convert("source", StateContainerBuilder.FieldMap())
-                val linkedState = linkedDecl.convert("linked", fieldMapWith(sourceDecl to sourceState))
-                linkedState.value shouldBe 0
+                val trackingState = trackingDecl.convert("tracking", fieldMapWith(sourceDecl to sourceState))
+                trackingState.value shouldBe 0
             }
 
             When("source is updated once") {
-                Then("linked field reflects the update") {
+                Then("tracking field reflects the update") {
                     val sourceState = sourceDecl.convert("source", StateContainerBuilder.FieldMap())
-                    val linkedState = linkedDecl.convert("linked", fieldMapWith(sourceDecl to sourceState))
+                    val trackingState = trackingDecl.convert("tracking", fieldMapWith(sourceDecl to sourceState))
                     sourceState.withTryLock { update(10) }
-                    linkedState.value shouldBe 10
+                    trackingState.value shouldBe 10
                 }
             }
 
             When("source is updated multiple times") {
-                Then("linked field accumulates all updates") {
+                Then("tracking field accumulates all updates") {
                     val sourceState = sourceDecl.convert("source", StateContainerBuilder.FieldMap())
-                    val linkedState = linkedDecl.convert("linked", fieldMapWith(sourceDecl to sourceState))
+                    val trackingState = trackingDecl.convert("tracking", fieldMapWith(sourceDecl to sourceState))
                     sourceState.withTryLock { update(3) }
                     sourceState.withTryLock { update(7) }
-                    linkedState.value shouldBe 10
+                    trackingState.value shouldBe 10
                 }
             }
 
             When("source is updated") {
-                Then("source value is not affected by the linked field") {
+                Then("source value is not affected by the tracking field") {
                     val sourceState = sourceDecl.convert("source", StateContainerBuilder.FieldMap())
-                    linkedDecl.convert("linked", fieldMapWith(sourceDecl to sourceState))
+                    trackingDecl.convert("tracking", fieldMapWith(sourceDecl to sourceState))
                     sourceState.withTryLock { update(42) }
                     sourceState.value shouldBe 42
                 }
             }
         }
 
-        Given("a reduced field linked to a reduced source with a doubling mapper") {
+        Given("a reduced field tracking a reduced source with a doubling mapper") {
             val sourceDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
             val wrappedDecl = ReducedFieldDeclaration(0) { acc, u: Int -> acc + u }
-            val linkedDecl = LinkedFieldDeclaration(wrappedDecl, LinkedFieldDeclaration.Link(sourceDecl) { u: Int -> u * 2 })
+            val trackingDecl = TrackingFieldDeclaration(
+                wrappedDecl,
+                TrackingFieldDeclaration.Link(sourceDecl) { u: Int -> u * 2 }
+            )
 
             When("source is updated") {
-                Then("mapper is applied before forwarding to linked field") {
+                Then("mapper is applied before forwarding to tracking field") {
                     val sourceState = sourceDecl.convert("source", StateContainerBuilder.FieldMap())
-                    val linkedState = linkedDecl.convert("linked", fieldMapWith(sourceDecl to sourceState))
+                    val trackingState = trackingDecl.convert("tracking", fieldMapWith(sourceDecl to sourceState))
                     sourceState.withTryLock { update(5) }
-                    linkedState.value shouldBe 10
+                    trackingState.value shouldBe 10
                 }
             }
 
             When("source is updated multiple times") {
                 Then("mapper is applied to each update independently") {
                     val sourceState = sourceDecl.convert("source", StateContainerBuilder.FieldMap())
-                    val linkedState = linkedDecl.convert("linked", fieldMapWith(sourceDecl to sourceState))
+                    val trackingState = trackingDecl.convert("tracking", fieldMapWith(sourceDecl to sourceState))
                     sourceState.withTryLock { update(3) }
                     sourceState.withTryLock { update(4) }
-                    linkedState.value shouldBe 14
+                    trackingState.value shouldBe 14
                 }
             }
         }
 
-        Given("a reduced List field linked to a mutable Int source") {
+        Given("a reduced List field tracking a mutable Int source") {
             val sourceDecl = MutableValueFieldDeclaration(0)
             val wrappedDecl = ReducedFieldDeclaration(emptyList<Int>()) { acc, u: Int -> acc + u }
-            val linkedDecl = LinkedFieldDeclaration(wrappedDecl, LinkedFieldDeclaration.Link(sourceDecl) { it })
+            val trackingDecl = TrackingFieldDeclaration(wrappedDecl, TrackingFieldDeclaration.Link(sourceDecl) { it })
 
             When("mutable source is updated") {
-                Then("new value is forwarded to linked field") {
+                Then("new value is forwarded to tracking field") {
                     val sourceState = sourceDecl.convert("source", StateContainerBuilder.FieldMap())
-                    val linkedState = linkedDecl.convert("linked", fieldMapWith(sourceDecl to sourceState))
+                    val trackingState = trackingDecl.convert("tracking", fieldMapWith(sourceDecl to sourceState))
                     sourceState.withTryLock { update { 5 } }
-                    linkedState.value shouldBe listOf(5)
+                    trackingState.value shouldBe listOf(5)
                 }
             }
 
             When("mutable source is updated multiple times") {
-                Then("all new values are accumulated in linked field") {
+                Then("all new values are accumulated in tracking field") {
                     val sourceState = sourceDecl.convert("source", StateContainerBuilder.FieldMap())
-                    val linkedState = linkedDecl.convert("linked", fieldMapWith(sourceDecl to sourceState))
+                    val trackingState = trackingDecl.convert("tracking", fieldMapWith(sourceDecl to sourceState))
                     sourceState.withTryLock { update { 3 } }
                     sourceState.withTryLock { update { 7 } }
-                    linkedState.value shouldBe listOf(3, 7)
+                    trackingState.value shouldBe listOf(3, 7)
                 }
             }
         }
+
         Given("a three-field chain: mutable source → reduced middle → reduced accumulator tail") {
             val aDecl = MutableValueFieldDeclaration(0)
             val bDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
             val cDecl = ReducedFieldDeclaration(emptyList<Int>()) { acc, u: Int -> acc + u }
-            val bLinked = LinkedFieldDeclaration(bDecl, LinkedFieldDeclaration.Link(aDecl) { it })
-            val cLinked = LinkedFieldDeclaration(cDecl, LinkedFieldDeclaration.Link(bLinked) { it })
+            val bTracking = TrackingFieldDeclaration(bDecl, TrackingFieldDeclaration.Link(aDecl) { it })
+            val cTracking = TrackingFieldDeclaration(cDecl, TrackingFieldDeclaration.Link(bTracking) { it })
 
             When("source is updated once") {
                 Then("update propagates through the full chain") {
                     val aState = aDecl.convert("a", StateContainerBuilder.FieldMap())
-                    val bState = bLinked.convert("b", fieldMapWith(aDecl to aState))
-                    val cState = cLinked.convert("c", fieldMapWith(aDecl to aState, bLinked to bState))
+                    val bState = bTracking.convert("b", fieldMapWith(aDecl to aState))
+                    val cState = cTracking.convert("c", fieldMapWith(aDecl to aState, bTracking to bState))
                     aState.withTryLock { update { 5 } }
                     bState.value shouldBe 5
                     cState.value shouldBe listOf(5)
@@ -121,8 +125,8 @@ class LinkedFieldTest : BehaviorSpec() {
             When("source is updated multiple times") {
                 Then("each update propagates through the full chain") {
                     val aState = aDecl.convert("a", StateContainerBuilder.FieldMap())
-                    val bState = bLinked.convert("b", fieldMapWith(aDecl to aState))
-                    val cState = cLinked.convert("c", fieldMapWith(aDecl to aState, bLinked to bState))
+                    val bState = bTracking.convert("b", fieldMapWith(aDecl to aState))
+                    val cState = cTracking.convert("c", fieldMapWith(aDecl to aState, bTracking to bState))
                     aState.withTryLock { update { 3 } }
                     aState.withTryLock { update { 7 } }
                     bState.value shouldBe 7

@@ -6,11 +6,12 @@ import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived3FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.DerivedNFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
-import io.github.yulimitbreak.aseptic.schema.fields.LinkableFieldDeclaration
-import io.github.yulimitbreak.aseptic.schema.fields.LinkedFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MessageFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MutableValueFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.TrackableFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.TrackingCapableFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.TrackingFieldDeclaration
 
 /**
  * Base class for Aseptic schema definitions.
@@ -225,16 +226,16 @@ abstract class AsepticSchema {
      *
      * @Ui
      * val articleCards = reduced<List<ArticleCard>, List<ArticleCard>>(emptyList()) { cards, new -> cards + new }
-     *     .linkedTo(articles) { newArticles -> newArticles.map { it.toCard() } }
+     *     .tracking(articles) { newArticles -> newArticles.map { it.toCard() } }
      * ```
      */
     @Suppress("MaximumLineLength")
-    protected fun <T, SourceUpdate, Update, LinkableUpdate> LinkableFieldDeclaration<T, Update, LinkableUpdate>.linkedTo(
-        source: LinkableFieldDeclaration<*, *, SourceUpdate>,
+    protected fun <T, SourceUpdate, Update, TrackableUpdate> TrackingCapableFieldDeclaration<T, Update, TrackableUpdate>.tracking(
+        source: TrackableFieldDeclaration<*, *, SourceUpdate>,
         updateMapper: (SourceUpdate) -> Update,
-    ) = LinkedFieldDeclaration(
+    ) = TrackingFieldDeclaration(
         this,
-        link = LinkedFieldDeclaration.Link(
+        link = TrackingFieldDeclaration.Link(
             source,
             updateMapper
         )
@@ -251,14 +252,15 @@ abstract class AsepticSchema {
      *
      * @Model
      * val scoreHistory = reduced<List<Int>, Int>(emptyList()) { history, delta -> history + delta }
-     *     .linkedTo(score)
+     *     .tracking(score)
      * ```
      */
-    protected fun <T, SourceUpdate, LinkableUpdate> LinkableFieldDeclaration<T, SourceUpdate, LinkableUpdate>.linkedTo(
-        source: LinkableFieldDeclaration<*, *, SourceUpdate>
-    ) = LinkedFieldDeclaration(
+    @Suppress("MaximumLineLength")
+    protected fun <T, SourceUpdate, TrackableUpdate> TrackingCapableFieldDeclaration<T, SourceUpdate, TrackableUpdate>.tracking(
+        source: TrackableFieldDeclaration<*, *, SourceUpdate>
+    ) = TrackingFieldDeclaration(
         this,
-        link = LinkedFieldDeclaration.Link(source) { it }
+        link = TrackingFieldDeclaration.Link(source) { it }
     )
 
     /**
@@ -275,13 +277,13 @@ abstract class AsepticSchema {
      *
      * @Model
      * val cartTotal = mutable(0.0)
-     *     .linkedTo(cartItems) { currentTotal, addedItem -> currentTotal + addedItem.price }
+     *     .tracking(cartItems) { currentTotal, addedItem -> currentTotal + addedItem.price }
      * ```
      */
-    protected inline fun <T, SourceUpdate> MutableValueFieldDeclaration<T>.linkedTo(
-        source: LinkableFieldDeclaration<*, *, SourceUpdate>,
+    protected inline fun <T, SourceUpdate> MutableValueFieldDeclaration<T>.tracking(
+        source: TrackableFieldDeclaration<*, *, SourceUpdate>,
         crossinline updateMapper: (previous: T, update: SourceUpdate) -> T,
-    ) = this.linkedTo(source) { update ->
+    ) = this.tracking(source) { update ->
         {
             updateMapper(it, update)
         }

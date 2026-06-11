@@ -17,16 +17,22 @@ import kotlinx.coroutines.flow.update
  */
 class MutableValueFieldDeclaration<T> internal constructor(
     internal val initial: T,
-) : LinkableFieldDeclaration<T, (T) -> T, T>() {
+) : TrackingCapableFieldDeclaration<T, (T) -> T, T>() {
     override fun convert(
         name: String,
         fields: StateContainerBuilder.FieldMap,
-    ): UpdatableFieldState<T, (T) -> T, T> = State(name, initial)
+    ): UpdatableFieldState<T, (T) -> T, T> = State(name, isLockable = true, initial)
+
+    override fun convertForTracking(
+        name: String,
+        fields: StateContainerBuilder.FieldMap
+    ): UpdatableFieldState<T, (T) -> T, T> = State(name, isLockable = false, initial)
 
     private class State<T>(
         name: String,
+        isLockable: Boolean,
         initial: T
-    ) : UpdatableFieldState<T, (T) -> T, T>(name) {
+    ) : UpdatableFieldState<T, (T) -> T, T>(name, isLockable) {
 
         override fun doUpdate(update: (T) -> T): T {
             stateFlow.update(update)

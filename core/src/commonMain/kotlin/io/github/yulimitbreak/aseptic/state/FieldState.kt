@@ -11,7 +11,7 @@ import kotlinx.coroutines.sync.Mutex
  *
  * Subclasses fall into two categories:
  * - Read-only fields (derived): implement [FieldState] directly.
- * - Writable fields (mutable, reduced, message, linked): extend [UpdatableFieldState].
+ * - Writable fields (mutable, reduced, message, tracking): extend [UpdatableFieldState].
  */
 internal abstract class FieldState<out T>(
     /** Name of this field in the owning schema. */
@@ -28,6 +28,24 @@ internal abstract class FieldState<out T>(
     abstract fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder)
 
     abstract val value: T
+
+    /**
+     * Fields that this field is immediately dependent on - i.e. their update will cause this field to update.
+     * Non-transitive
+     */
+    internal open val dependencies = emptySet<FieldState<*>>()
+
+    /**
+     * Returns the set of source fields (that have a source flow and a mutex and can be updated)
+     * that this field transitively depends on
+     */
+    internal fun getUpdateSources(): Set<UpdatableFieldState<*, *, *>> {
+        val result = dependencies.flatMapTo(mutableSetOf()) { it.getUpdateSources() }
+        if (this is UpdatableFieldState<*, *, *>) {
+            result.add(this)
+        }
+        return result
+    }
 }
 
 /**
@@ -39,15 +57,16 @@ internal abstract class FieldState<out T>(
  *
  * @param T the type of the field value.
  * @param Update the type of the write message accepted by this field.
- * @param LinkableUpdate the value emitted to linked fields after each write.
+ * @param TrackedUpdate the value emitted to linked fields after each write.
  */
-internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate>(
+internal abstract class UpdatableFieldState<out T, in Update, out TrackedUpdate>(
     name: String,
+    val isLockable: Boolean = true,
 ) : FieldState<T>(name) {
 
-    private var updateCallbacks: MutableList<(LinkableUpdate) -> Unit> = mutableListOf()
+    private val updateCallbacks: MutableList<(TrackedUpdate) -> Unit> = mutableListOf()
 
-    private val mutex = Mutex()
+    private val mutex = if (isLockable) Mutex() else null
 
     /**
      * Applies [update] to the field's internal state and notifies all registered callbacks.
@@ -55,36 +74,49 @@ internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate
      * Must only be called while [mutex] is held. Throws [IllegalStateException] otherwise.
      */
     fun update(update: Update) {
-        check(mutex.isLocked) { "update() must only be called while holding the field mutex" }
+        check(mutex?.isLocked ?: true) { "update() must only be called while holding the field mutex" }
         val output = doUpdate(update)
         updateCallbacks.forEach { it.invoke(output) }
     }
 
     /**
-     * Applies [update] to internal state and returns the [LinkableUpdate] to broadcast.
+     * Applies [update] to internal state and returns the [TrackedUpdate] to broadcast.
      *
      * Called by [update] under the field mutex.
      */
-    internal abstract fun doUpdate(update: Update): LinkableUpdate
+    internal abstract fun doUpdate(update: Update): TrackedUpdate
 
     /**
-     * Registers [callback] to be invoked with the [LinkableUpdate] after every write.
-     * Used by [io.github.yulimitbreak.aseptic.schema.fields.LinkedFieldDeclaration] to wire
+     * Registers [callback] to be invoked with the [TrackedUpdate] after every write.
+     * Used by [io.github.yulimitbreak.aseptic.schema.fields.TrackingFieldDeclaration] to wire
      * automatic update propagation between fields. Must be called at construction time,
      * before any writes can occur.
      */
-    internal fun addUpdateCallback(callback: (LinkableUpdate) -> Unit) {
+    internal open fun addUpdateCallback(callback: (TrackedUpdate) -> Unit) {
         updateCallbacks.add(callback)
     }
 
-    /** Acquires the field mutex. Called by [StateContainer] before committing writes. */
-    internal suspend fun lock() = mutex.lock()
+    /**
+     * Acquires the field mutex. Called by [StateContainer] before committing writes.
+     * If not lockable, does nothing
+     */
+    internal suspend fun lock() {
+        mutex?.lock()
+    }
 
     /**
-     * Attempts to acquire the field mutex without suspending. Returns `false` if already held.
+     * Attempts to acquire the field mutex without suspending. Returns `false` if already held.'
+     * Returns `true` if not lockable
      */
-    internal fun tryLock() = mutex.tryLock()
+    internal fun tryLock(): Boolean {
+        return mutex?.tryLock() ?: true
+    }
 
-    /** Releases the field mutex. Called by [StateContainer] after committing writes. */
-    internal fun unlock() = mutex.unlock()
+    /**
+     * Releases the field mutex. Called by [StateContainer] after committing writes.
+     * If not lockable, does nothing
+     */
+    internal fun unlock() {
+        mutex?.unlock()
+    }
 }
