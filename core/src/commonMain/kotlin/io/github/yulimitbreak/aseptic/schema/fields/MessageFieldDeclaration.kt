@@ -37,17 +37,18 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
     }
 
     override fun convert(
+        name: String,
         fields: StateContainerBuilder.FieldMap,
         coroutineScope: CoroutineScope,
-    ): FieldState<T?> = State()
+    ): FieldState<T?> = State(name)
 
-    private class State<T : Any> : UpdatableFieldState<T?, Update<T>, Unit>() {
+    private class State<T : Any>(name: String) : UpdatableFieldState<T?, Update<T>, Unit>(name) {
         private val queueFlow = MutableStateFlow<ImmutableQueue<T>>(ImmutableQueue())
 
         override val value: T? get() = queueFlow.value.next
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
-            snapshotFlowBuilder.addSource(this, queueFlow.map { it.next })
+            snapshotFlowBuilder.addSource(name, queueFlow.map { it.next })
         }
 
         override fun doUpdate(update: Update<T>) {

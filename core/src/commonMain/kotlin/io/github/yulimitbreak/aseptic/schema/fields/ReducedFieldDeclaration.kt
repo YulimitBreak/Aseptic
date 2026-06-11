@@ -27,20 +27,22 @@ class ReducedFieldDeclaration<T, U> internal constructor(
     internal val update: (old: T, update: U) -> T,
 ) : LinkableFieldDeclaration<T, U, U>() {
     override fun convert(
+        name: String,
         fields: StateContainerBuilder.FieldMap,
         coroutineScope: CoroutineScope
     ): UpdatableFieldState<T, U, U> =
-        State(initial, update)
+        State(name, initial, update)
 
     private class State<T, U>(
+        name: String,
         initial: T,
         private val reducer: (T, U) -> T,
-    ) : UpdatableFieldState<T, U, U>() {
+    ) : UpdatableFieldState<T, U, U>(name) {
 
         override val value: T get() = stateFlow.value
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
-            snapshotFlowBuilder.addSource(this, stateFlow)
+            snapshotFlowBuilder.addSource(name, stateFlow)
         }
 
         private val stateFlow = MutableStateFlow(initial)

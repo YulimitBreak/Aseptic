@@ -28,7 +28,7 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
      * derived fields.
      */
     fun <T> addStaticField(name: String, uiVisible: Boolean, value: T) {
-        fields[name] = StaticFieldState(value)
+        fields[name] = StaticFieldState(name, value)
         if (uiVisible) uiFields += name
     }
 
@@ -40,7 +40,7 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
      * order to lock fields without deadlocks
      */
     fun <T> addField(name: String, uiVisible: Boolean, field: FieldDeclaration<T>) {
-        val state = field.convert(fieldMap, coroutineScope)
+        val state = field.convert(name, fieldMap, coroutineScope)
         fields[name] = state
         if (state is UpdatableFieldState<*, *, *>) {
             lockingOrder += name
@@ -61,10 +61,10 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
     /**
      * A trivial [FieldState] to be able to handle static values as fields
      */
-    private class StaticFieldState<T>(override val value: T) : FieldState<T>() {
+    private class StaticFieldState<T>(name: String, override val value: T) : FieldState<T>(name) {
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
-            snapshotFlowBuilder.addMapper(this) { value }
+            snapshotFlowBuilder.addMapper(name) { value }
         }
     }
 

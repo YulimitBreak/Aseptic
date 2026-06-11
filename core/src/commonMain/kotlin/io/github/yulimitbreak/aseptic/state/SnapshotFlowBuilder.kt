@@ -20,21 +20,19 @@ import kotlinx.coroutines.flow.map
  *
  * A control gate flow can suppress emissions (e.g. during an atomic multi-field write): while it
  * emits `false`, no snapshot is produced, collapsing intermediate states into a single emission.
- *
- * Construct via [SnapshotFlowBuilder.of]
  */
-internal class SnapshotFlowBuilder private constructor() {
+internal class SnapshotFlowBuilder {
 
-    private val sources = mutableListOf<SourceEntry<*>>()
+    private val sources = mutableListOf<SourceEntry>()
 
-    private val mappers = mutableListOf<MappingEntry<*>>()
+    private val mappers = mutableListOf<MappingEntry>()
 
-    fun <T> addSource(source: FieldState<T>, flow: Flow<T>) {
-        sources.add(SourceEntry(source, flow))
+    fun <T> addSource(name: String, flow: Flow<T>) {
+        sources.add(SourceEntry(name, flow))
     }
 
-    fun <T> addMapper(field: FieldState<T>, mapper: (UncheckedMap<FieldState<*>>) -> T) {
-        mappers.add(MappingEntry(field, mapper))
+    fun <T> addMapper(name: String, mapper: (UncheckedMap<String>) -> T) {
+        mappers.add(MappingEntry(name, mapper))
     }
 
     /**
@@ -43,8 +41,8 @@ internal class SnapshotFlowBuilder private constructor() {
      * [controlGate] allows to stop emitting new values when it's `false`, it allows to do
      * atomic writes without recalculating a snapshot for every intermediate state
      */
-    fun build(controlGate: Flow<Boolean> = flowOf(true)): Flow<UncheckedMap<FieldState<*>>> {
-        val mappers = this.mappers.distinctBy { it.fieldState }
+    fun build(controlGate: Flow<Boolean> = flowOf(true)): Flow<UncheckedMap<String>> {
+        val mappers = this.mappers.distinctBy { it.name }
 
         val sourceFlows = this.sources.map { (state, flow) ->
             flow.map { SourceOrGate.Source(state, it) }
@@ -55,7 +53,7 @@ internal class SnapshotFlowBuilder private constructor() {
 
             val resultMap = sources.dropLast(1).associateTo(mutableMapOf()) {
                 it as SourceOrGate.Source
-                it.state to it.value
+                it.name to it.value
             }
             val wrapper = UncheckedMapWrapper(resultMap)
 
@@ -68,27 +66,14 @@ internal class SnapshotFlowBuilder private constructor() {
         }.filterNotNull()
     }
 
-    private data class SourceEntry<T>(val fieldState: FieldState<T>, val flow: Flow<T>)
+    private data class SourceEntry(val name: String, val flow: Flow<Any?>)
 
-    private data class MappingEntry<T>(val fieldState: FieldState<T>, val mapper: (UncheckedMap<FieldState<*>>) -> T)
+    private data class MappingEntry(val name: String, val mapper: (UncheckedMap<String>) -> Any?)
 
     private sealed interface SourceOrGate {
 
-        class Source(val state: FieldState<*>, val value: Any?) : SourceOrGate
+        class Source(val name: String, val value: Any?) : SourceOrGate
 
         class Gate(val open: Boolean) : SourceOrGate
-    }
-
-    companion object {
-        /**
-         * Create a flow builder for a set of fields
-         */
-        internal fun of(
-            states: Iterable<FieldState<*>>,
-        ): SnapshotFlowBuilder {
-            val builder = SnapshotFlowBuilder()
-            states.forEach { it.buildSnapshotFlow(builder) }
-            return builder
-        }
     }
 }

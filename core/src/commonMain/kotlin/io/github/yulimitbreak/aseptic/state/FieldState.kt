@@ -13,7 +13,10 @@ import kotlinx.coroutines.sync.Mutex
  * - Read-only fields (derived): implement [FieldState] directly.
  * - Writable fields (mutable, reduced, message, linked): extend [UpdatableFieldState].
  */
-internal abstract class FieldState<out T> {
+internal abstract class FieldState<out T>(
+    /** Name of this field in the owning schema. */
+    val name: String,
+) {
 
     /**
      * Registers this field into the given [snapshotFlowBuilder].
@@ -38,7 +41,9 @@ internal abstract class FieldState<out T> {
  * @param Update the type of the write message accepted by this field.
  * @param LinkableUpdate the value emitted to linked fields after each write.
  */
-internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate> : FieldState<T>() {
+internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate>(
+    name: String,
+) : FieldState<T>(name) {
 
     private var updateCallbacks: MutableList<(LinkableUpdate) -> Unit> = mutableListOf()
 

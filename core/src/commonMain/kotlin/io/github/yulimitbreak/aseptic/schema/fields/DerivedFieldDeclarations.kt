@@ -17,13 +17,18 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
     internal val source1: FieldDeclaration<T1>,
     internal val mapper: (T1) -> R,
 ) : FieldDeclaration<R>() {
-    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(fields[source1], mapper)
+    override fun convert(
+        name: String,
+        fields: StateContainerBuilder.FieldMap,
+        coroutineScope: CoroutineScope,
+    ): FieldState<R> =
+        State(name, fields[source1], mapper)
 
     private class State<T1, R>(
+        name: String,
         private val source: FieldState<T1>,
         private val mapper: (T1) -> R,
-    ) : FieldState<R>() {
+    ) : FieldState<R>(name) {
 
         private var cache: Pair<T1, R> = source.value.let { it to mapper(it) }
 
@@ -37,7 +42,7 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
             source.buildSnapshotFlow(snapshotFlowBuilder)
-            snapshotFlowBuilder.addMapper(this) { map -> compute(map[source]) }
+            snapshotFlowBuilder.addMapper(name) { map -> compute(map[source.name]) }
         }
     }
 }
@@ -53,14 +58,19 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
     internal val source2: FieldDeclaration<T2>,
     internal val mapper: (T1, T2) -> R,
 ) : FieldDeclaration<R>() {
-    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(fields[source1], fields[source2], mapper)
+    override fun convert(
+        name: String,
+        fields: StateContainerBuilder.FieldMap,
+        coroutineScope: CoroutineScope,
+    ): FieldState<R> =
+        State(name, fields[source1], fields[source2], mapper)
 
     private class State<T1, T2, R>(
+        name: String,
         private val source1: FieldState<T1>,
         private val source2: FieldState<T2>,
         private val mapper: (T1, T2) -> R,
-    ) : FieldState<R>() {
+    ) : FieldState<R>(name) {
 
         private var cache: Triple<T1, T2, R> =
             Triple(source1.value, source2.value, mapper(source1.value, source2.value))
@@ -76,7 +86,7 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
             source1.buildSnapshotFlow(snapshotFlowBuilder)
             source2.buildSnapshotFlow(snapshotFlowBuilder)
-            snapshotFlowBuilder.addMapper(this) { map -> compute(map[source1], map[source2]) }
+            snapshotFlowBuilder.addMapper(name) { map -> compute(map[source1.name], map[source2.name]) }
         }
     }
 }
@@ -94,15 +104,20 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
     internal val mapper: (T1, T2, T3) -> R,
 ) : FieldDeclaration<R>() {
 
-    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
-        State(fields[source1], fields[source2], fields[source3], mapper)
+    override fun convert(
+        name: String,
+        fields: StateContainerBuilder.FieldMap,
+        coroutineScope: CoroutineScope,
+    ): FieldState<R> =
+        State(name, fields[source1], fields[source2], fields[source3], mapper)
 
     private class State<T1, T2, T3, R>(
+        name: String,
         private val source1: FieldState<T1>,
         private val source2: FieldState<T2>,
         private val source3: FieldState<T3>,
         private val mapper: (T1, T2, T3) -> R,
-    ) : FieldState<R>() {
+    ) : FieldState<R>(name) {
 
         private data class Cache<T1, T2, T3, R>(val s1: T1, val s2: T2, val s3: T3, val result: R)
 
@@ -125,7 +140,9 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
             source1.buildSnapshotFlow(snapshotFlowBuilder)
             source2.buildSnapshotFlow(snapshotFlowBuilder)
             source3.buildSnapshotFlow(snapshotFlowBuilder)
-            snapshotFlowBuilder.addMapper(this) { map -> compute(map[source1], map[source2], map[source3]) }
+            snapshotFlowBuilder.addMapper(
+                name
+            ) { map -> compute(map[source1.name], map[source2.name], map[source3.name]) }
         }
     }
 }
@@ -141,16 +158,22 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
     internal val mapper: (List<T>) -> R,
 ) : FieldDeclaration<R>() {
     @Suppress("UNCHECKED_CAST")
-    override fun convert(fields: StateContainerBuilder.FieldMap, coroutineScope: CoroutineScope): FieldState<R> =
+    override fun convert(
+        name: String,
+        fields: StateContainerBuilder.FieldMap,
+        coroutineScope: CoroutineScope,
+    ): FieldState<R> =
         State(
+            name = name,
             sources = sources.map { fields[it] } as List<FieldState<Any?>>,
             mapper = mapper as (List<Any?>) -> R,
         )
 
     private class State<R>(
+        name: String,
         private val sources: List<FieldState<Any?>>,
         private val mapper: (List<Any?>) -> R,
-    ) : FieldState<R>() {
+    ) : FieldState<R>(name) {
 
         private var cache: Pair<List<Any?>, R> = sources.map { it.value }.let { it to mapper(it) }
 
@@ -164,7 +187,7 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
             sources.forEach { it.buildSnapshotFlow(snapshotFlowBuilder) }
-            snapshotFlowBuilder.addMapper(this) { map -> compute(sources.map { map[it] }) }
+            snapshotFlowBuilder.addMapper(name) { map -> compute(sources.map { map[it.name] }) }
         }
     }
 }

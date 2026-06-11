@@ -4,6 +4,7 @@ import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.util.UncheckedMap
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
@@ -28,17 +29,21 @@ class StateContainer internal constructor(
 
     private val consistencyMutex = Mutex()
 
-    private val uiCombined = fields
-        .filter { (key, _) -> uiFields.contains(key) }
-        .let {
-            SnapshotFlowBuilder.of(it.map { (_, value) -> value }).build()
+    private val controlGate = MutableStateFlow(true)
+
+    private val uiCombined = fields.filterKeys { key -> uiFields.contains(key) }.let { fields ->
+        val builder = SnapshotFlowBuilder()
+        for ((_, field) in fields) {
+            field.buildSnapshotFlow(builder)
         }
+        builder.build()
+    }
 
     /**
      * Returns a [StateFlow] of UI state mapped from all `@Ui` fields via [uiMapper].
      */
     fun <UI> uiFlow(scope: CoroutineScope, uiMapper: (UncheckedMap<String>) -> UI): StateFlow<UI> =
-        TODO("(uiMapper)").stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
+        uiCombined.map(uiMapper).stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
 
     /**
      * Returns the current value of the field by name.
@@ -54,7 +59,9 @@ class StateContainer internal constructor(
      *
      * Performs an unchecked cast, should be used only in generated code.
      */
-    fun <T> asFlow(name: String): Flow<T> = TODO("fields[name]?.provideFlow() as Flow<T>")
+    fun <T> asFlow(name: String): Flow<T> = SnapshotFlowBuilder().also {
+        fields.getValue(name).buildSnapshotFlow(it)
+    }.build(controlGate).map { it[name] }
 
     /**
      * Applies [update] to a single updatable field under its field mutex.

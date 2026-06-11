@@ -23,10 +23,11 @@ class LinkedFieldDeclaration<out T, Update, out LinkableUpdate> internal constru
     // Nothing as the update type prevents the field from being linked to multiple sources or updated manually
 
     override fun convert(
+        name: String,
         fields: StateContainerBuilder.FieldMap,
         coroutineScope: CoroutineScope
     ): UpdatableFieldState<T, Update, LinkableUpdate> {
-        val state = original.convert(fields, coroutineScope)
+        val state = original.convert(name, fields, coroutineScope)
         link.registerUpdate(
             fields,
             state

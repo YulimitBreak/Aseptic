@@ -20,13 +20,15 @@ class MutableValueFieldDeclaration<T> internal constructor(
     internal val initial: T,
 ) : LinkableFieldDeclaration<T, (T) -> T, T>() {
     override fun convert(
+        name: String,
         fields: StateContainerBuilder.FieldMap,
         coroutineScope: CoroutineScope
-    ): UpdatableFieldState<T, (T) -> T, T> = State(initial)
+    ): UpdatableFieldState<T, (T) -> T, T> = State(name, initial)
 
     private class State<T>(
+        name: String,
         initial: T
-    ) : UpdatableFieldState<T, (T) -> T, T>() {
+    ) : UpdatableFieldState<T, (T) -> T, T>(name) {
 
         override fun doUpdate(update: (T) -> T): T {
             stateFlow.update(update)
@@ -36,7 +38,7 @@ class MutableValueFieldDeclaration<T> internal constructor(
         override val value: T get() = stateFlow.value
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
-            snapshotFlowBuilder.addSource(this, stateFlow)
+            snapshotFlowBuilder.addSource(name, stateFlow)
         }
 
         private val stateFlow = MutableStateFlow(initial)
