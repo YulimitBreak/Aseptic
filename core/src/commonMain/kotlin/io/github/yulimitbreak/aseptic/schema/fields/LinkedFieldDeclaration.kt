@@ -13,7 +13,6 @@ import kotlinx.coroutines.CoroutineScope
  * the source is written, it updates the wrapped field.
  *
  * @param T the type of the field value.
- * @param Update the internal write message type of the wrapped field (hidden from callers).
  * @param LinkableUpdate the value propagated to linked fields after each write; inherited from the wrapped field.
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.linkedTo
  */
@@ -21,7 +20,7 @@ class LinkedFieldDeclaration<out T, Update, out LinkableUpdate> internal constru
     private val original: LinkableFieldDeclaration<T, Update, LinkableUpdate>,
     private val link: Link<*, Update>
 ) : LinkableFieldDeclaration<T, Nothing, LinkableUpdate>() {
-    // Using Nothing for update, in order to prevent field to be linked to multiple sources or updated manually
+    // Nothing as the update type prevents the field from being linked to multiple sources or updated manually
 
     override fun convert(
         fields: StateContainerBuilder.FieldMap,

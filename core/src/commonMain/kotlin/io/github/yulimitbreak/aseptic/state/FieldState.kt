@@ -7,8 +7,7 @@ import kotlinx.coroutines.sync.Mutex
  *
  * Each [io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration] produces one [FieldState]
  * instance via [io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration.convert] during
- * state construction. The [flow] is the observable source of truth for that field; [value] is
- * a shortcut for the current snapshot.
+ * state construction.
  *
  * Subclasses fall into two categories:
  * - Read-only fields (derived): implement [FieldState] directly.
@@ -17,11 +16,11 @@ import kotlinx.coroutines.sync.Mutex
 internal abstract class FieldState<out T> {
 
     /**
-     * Construct [SnapshotFlowBuilder] from current state
+     * Registers this field into the given [snapshotFlowBuilder].
      *
-     * Implementation should call [buildSnapshotFlow] on FieldStates that this state depends on **before**
-     * adding current state as a mapper
-     * Calculation in mappers should use cache, as this can be called on every source field update
+     * Implementations must call [buildSnapshotFlow] on every source field they depend on **before**
+     * adding themselves as a mapper, so dependencies are registered (and computed) first.
+     * Mapper bodies should read from the cache, since they may run on every source update.
      */
     abstract fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder)
 
@@ -58,6 +57,7 @@ internal abstract class UpdatableFieldState<out T, in Update, out LinkableUpdate
 
     /**
      * Applies [update] to internal state and returns the [LinkableUpdate] to broadcast.
+     *
      * Called by [update] under the field mutex.
      */
     internal abstract fun doUpdate(update: Update): LinkableUpdate

@@ -9,8 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 
 /**
  * Declaration of a read-only field whose value is computed from one source field.
- *
- * At runtime the field recomputes via [mapper] whenever [source1] emits a new value.
+ * Caches last calculation
  *
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derived
  */
@@ -45,9 +44,7 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
 
 /**
  * Declaration of a read-only field whose value is computed from two source fields.
- *
- * At runtime the field recomputes via [mapper] whenever either source emits a new value,
- * combining the latest value of each source.
+ * Caches last calculation
  *
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derived
  */
@@ -86,9 +83,7 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
 
 /**
  * Declaration of a read-only field whose value is computed from three source fields.
- *
- * At runtime the field recomputes via [mapper] whenever any source emits a new value,
- * combining the latest value of each source.
+ * Caches last calculation
  *
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derived
  */
@@ -137,12 +132,7 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
 
 /**
  * Declaration of a read-only field derived from four or more source fields.
- *
- * At runtime the field recomputes via [mapper] whenever any source emits a new value.
- * All current source values are passed as a list.
- *
- * For 1–3 sources with distinct types use [Derived1FieldDeclaration], [Derived2FieldDeclaration],
- * or [Derived3FieldDeclaration] instead.
+ * Caches last calculation
  *
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derived
  */

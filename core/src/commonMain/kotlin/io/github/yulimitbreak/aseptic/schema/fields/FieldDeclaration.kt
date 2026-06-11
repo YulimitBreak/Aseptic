@@ -8,7 +8,7 @@ import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 import kotlinx.coroutines.CoroutineScope
 
 /**
- * Marker interface for all field declarations in an [io.github.yulimitbreak.aseptic.schema.AsepticSchema].
+ * Base class for all field declarations in an [io.github.yulimitbreak.aseptic.schema.AsepticSchema].
  *
  * A field declaration is a pure, stateless descriptor created at schema definition time.
  * It carries the information the runtime needs to construct the corresponding
@@ -25,13 +25,8 @@ abstract class FieldDeclaration<out T> internal constructor() {
 }
 
 /**
- * A [FieldDeclaration] that produces an [UpdatableFieldState] — a field that accepts writes
- * and can serve as a source for [LinkedFieldDeclaration].
- *
- * The [Update] type is the write message accepted by the field. [LinkableUpdate] is the value
- * emitted to linked fields after each write; it is the bridge between this field's update
- * output and the update input of any field chained via
- * [linkedTo][io.github.yulimitbreak.aseptic.schema.AsepticSchema.linkedTo].
+ * A [FieldDeclaration] that produces an [UpdatableFieldState], and can be linked to other fields via
+ * [linkedTo][io.github.yulimitbreak.aseptic.schema.AsepticSchema.linkedTo] and be a target of linking by other fields.
  *
  * @param T the type of the field value.
  * @param Update the type of the write message.

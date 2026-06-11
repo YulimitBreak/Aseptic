@@ -11,7 +11,19 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
-internal class SnapshotFlowBuilder {
+/**
+ * Builds a single [Flow] emitting a consistent snapshot of all registered fields.
+ *
+ * Source fields register via [addSource]; derived fields register via [addMapper], computing their
+ * value from already-emitted sources. [build] creates a flow combining source flows and calculating
+ * all relevant derived fields.
+ *
+ * A control gate flow can suppress emissions (e.g. during an atomic multi-field write): while it
+ * emits `false`, no snapshot is produced, collapsing intermediate states into a single emission.
+ *
+ * Construct via [SnapshotFlowBuilder.of]
+ */
+internal class SnapshotFlowBuilder private constructor() {
 
     private val sources = mutableListOf<SourceEntry<*>>()
 
@@ -25,6 +37,12 @@ internal class SnapshotFlowBuilder {
         mappers.add(MappingEntry(field, mapper))
     }
 
+    /**
+     * Combines all source flows and uses mappers to calculate all requested values.
+     *
+     * [controlGate] allows to stop emitting new values when it's `false`, it allows to do
+     * atomic writes without recalculating a snapshot for every intermediate state
+     */
     fun build(controlGate: Flow<Boolean> = flowOf(true)): Flow<UncheckedMap<FieldState<*>>> {
         val mappers = this.mappers.distinctBy { it.fieldState }
 
@@ -62,8 +80,11 @@ internal class SnapshotFlowBuilder {
     }
 
     companion object {
+        /**
+         * Create a flow builder for a set of fields
+         */
         internal fun of(
-            vararg states: FieldState<*>,
+            states: Iterable<FieldState<*>>,
         ): SnapshotFlowBuilder {
             val builder = SnapshotFlowBuilder()
             states.forEach { it.buildSnapshotFlow(builder) }

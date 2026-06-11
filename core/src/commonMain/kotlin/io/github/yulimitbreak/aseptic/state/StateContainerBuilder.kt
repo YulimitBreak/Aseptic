@@ -9,14 +9,6 @@ import kotlinx.coroutines.CoroutineScope
  *
  * Generated `XxxState` constructors instantiate this builder, builder methods for every
  * schema member in **declaration order**, then call [build] to produce the live [StateContainer].
- *
- * Declaration order matters: [UpdatableFieldState] entries are appended to [lockingOrder]
- * in the order they are added, and [StateContainer] must always acquire field mutexes in that
- * order. This prevents deadlocks when multiple field mutexes are held simultaneously.
- *
- * The [FieldMap] is threaded through every [FieldDeclaration.convert] call so that derived
- * fields can look up the [StateFlow] of their source fields. Because declarations are added in
- * order, a source field's flow is always registered before any field that depends on it.
  */
 @AsepticInternal
 class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
@@ -41,13 +33,11 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
     }
 
     /**
-     * Converts [field] into a live [FieldState] and registers it.
-     *
-     * Calls [FieldDeclaration.convert] with the current [FieldMap] (so derived fields can
-     * resolve source flows) and the shared [coroutineScope] (for `stateIn` sharing). If the
-     * resulting state is [UpdatableFieldState], the field name is appended to [lockingOrder].
+     * Converts [field] into a live [FieldState] and registers it using the [name].
      * Setting [uiVisible] as true adds the dependency of UI mapper on this field.
-     * Finally, the new flow is added to [FieldMap] so subsequent fields can use it as a source.
+     *
+     * Updatable fields added create a canonical locking order, to have a consistent
+     * order to lock fields without deadlocks
      */
     fun <T> addField(name: String, uiVisible: Boolean, field: FieldDeclaration<T>) {
         val state = field.convert(fieldMap, coroutineScope)
@@ -68,6 +58,9 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
         uiFields = uiFields,
     )
 
+    /**
+     * A trivial [FieldState] to be able to handle static values as fields
+     */
     private class StaticFieldState<T>(override val value: T) : FieldState<T>() {
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
@@ -75,10 +68,6 @@ class StateContainerBuilder(private val coroutineScope: CoroutineScope) {
         }
     }
 
-    /**
-     * Typed index from [FieldDeclaration] instances to their [FieldState]. Populated
-     * incrementally as fields are added via [addField] / [addStaticField].
-     */
     @Suppress("UNCHECKED_CAST")
     internal class FieldMap {
 

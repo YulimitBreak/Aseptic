@@ -8,6 +8,25 @@ import io.github.yulimitbreak.aseptic.runner.DispatchPolicy
  * The processor generates a state manager class and a UI model class based on the annotated schema.
  * By default, the generated class names are derived from the schema class name; [baseName] overrides
  * the common prefix used for all generated classes.
+ *
+ * ```kotlin
+ *
+ * @Aseptic(baseName = "Profile")
+ * class ProfileSchema(
+ *      @Model
+ *      val userId: String
+ * ): AsepticSchema() {
+ *
+ *      @Model
+ *      val userData = mutable<UserData?>(null)
+ *
+ *      @Model
+ *      @Ui(named = "showLoading")
+ *      val userLoading = mutable(true)
+ *
+ *      // ...
+ * }
+ * ```
  */
 annotation class Aseptic(
     val baseName: String = "",
@@ -46,11 +65,39 @@ annotation class Ui(
  *
  * Operations are fire-and-forget `suspend` extension functions on the generated handle class
  * (a subclass of [io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle]). Inside an operation,
- * `this` is the handle — giving access to all `@Model`-annotated fields for reading and writing,
+ * `this` is the handle - giving access to all `@Model`-annotated fields for reading and writing,
  * as well as `snapshot {}` and `atomic {}` scopes for consistent multi-field reads and writes.
  *
  * Each operation is dispatched through an [io.github.yulimitbreak.aseptic.runner.OperationRunner]
  * which enforces the chosen [dispatchPolicy] relative to other running instances of the same operation.
+ *
+ *
+ *
+ * ```kotlin
+ *
+ * @Operation(named = "loadNews", dispatchPolicy = DispatchPolicy.CANCEL)
+ * fun NewsHandle.loadNewsArticles(categoryId: String, loadArticlesUseCase: suspend (String) -> List<Article>) {
+ *      loading.update { true }
+ *      try {
+ *          val loaded = loadArticlesUseCase(categoryId)
+ *          atomic(articles, categoryStatus) {
+ *              articles = loaded
+ *              categoryStatus = CategoryStatus.READ
+ *          }
+ *      } catch (e: IOException) {
+ *          errors.emit { NewsErrorEvents.NetworkError }
+ *      } finally {
+ *          loading.update { false }
+ *      }
+ * }
+ * // ...
+ *
+ * fun showCategory(category: Category) {
+ *      newsState.loadNews(category.id, loadArticlesUseCase, dispatchPolicy = DispatchPolicy.DROP)
+ * }
+ *
+ * ```
+ *
  *
  * @param named overrides the function name in the generated state handle. If empty, the annotated
  * function name is used.
@@ -68,7 +115,7 @@ annotation class Operation(
  * that are guaranteed with generated code.
  */
 @RequiresOptIn(
-    message = "Internal Aseptic API. Do not use directly — for generated code only.",
+    message = "Internal Aseptic API. Do not use directly - for generated code only.",
     level = RequiresOptIn.Level.ERROR
 )
 annotation class AsepticInternal
