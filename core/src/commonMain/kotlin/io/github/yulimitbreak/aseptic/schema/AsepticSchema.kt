@@ -10,7 +10,7 @@ import io.github.yulimitbreak.aseptic.schema.fields.MessageFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MutableValueFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.TrackableFieldDeclaration
-import io.github.yulimitbreak.aseptic.schema.fields.TrackingCapableFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.UpdatableFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.TrackingFieldDeclaration
 
 /**
@@ -230,7 +230,7 @@ abstract class AsepticSchema {
      * ```
      */
     @Suppress("MaximumLineLength")
-    protected fun <T, SourceUpdate, Update, TrackedUpdate> TrackingCapableFieldDeclaration<T, Update, TrackedUpdate>.tracking(
+    protected fun <T, SourceUpdate, Update, TrackedUpdate> UpdatableFieldDeclaration<T, Update, TrackedUpdate>.tracking(
         source: TrackableFieldDeclaration<*, *, SourceUpdate>,
         updateMapper: (SourceUpdate) -> Update,
     ) = TrackingFieldDeclaration(
@@ -256,7 +256,7 @@ abstract class AsepticSchema {
      * ```
      */
     @Suppress("MaximumLineLength")
-    protected fun <T, SourceUpdate, TrackedUpdate> TrackingCapableFieldDeclaration<T, SourceUpdate, TrackedUpdate>.tracking(
+    protected fun <T, SourceUpdate, TrackedUpdate> UpdatableFieldDeclaration<T, SourceUpdate, TrackedUpdate>.tracking(
         source: TrackableFieldDeclaration<*, *, SourceUpdate>
     ) = TrackingFieldDeclaration(
         this,

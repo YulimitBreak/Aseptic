@@ -42,14 +42,16 @@ abstract class TrackableFieldDeclaration<out T, in Update, out TrackedUpdate> in
 }
 
 /**
- * A [TrackableFieldDeclaration] that can also be a target of tracking, meaning it can wrap
- * an original field declaration and receive updates via [tracking][io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking].
+ * A [FieldDeclaration] that can be updated manually.
+ * It is also a [TrackableFieldDeclaration], so other fields can track it
+ * with [tracking][io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking], but
+ * also on top of that this field can receive tracking updates from other trackable fields
  *
  * @param T the type of the field value.
  * @param Update the type of the write message.
  * @param TrackedUpdate the value propagated to tracking fields after each write.
  */
-abstract class TrackingCapableFieldDeclaration<out T, in Update, out TrackedUpdate> internal constructor() :
+abstract class UpdatableFieldDeclaration<out T, in Update, out TrackedUpdate> internal constructor() :
     TrackableFieldDeclaration<T, Update, TrackedUpdate>() {
 
     internal abstract fun convertForTracking(
