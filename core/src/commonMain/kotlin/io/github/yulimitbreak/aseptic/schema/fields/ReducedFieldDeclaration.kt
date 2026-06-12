@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.update
 class ReducedFieldDeclaration<T, U> internal constructor(
     internal val initial: T,
     internal val update: (old: T, update: U) -> T,
-) : TrackingCapableFieldDeclaration<T, U, U>() {
+) : UpdatableFieldDeclaration<T, U, U>() {
 
     override fun convert(
         key: FieldKey,

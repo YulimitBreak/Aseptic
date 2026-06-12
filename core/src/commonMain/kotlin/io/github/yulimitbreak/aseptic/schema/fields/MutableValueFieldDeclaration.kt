@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.update
  */
 class MutableValueFieldDeclaration<T> internal constructor(
     internal val initial: T,
-) : TrackingCapableFieldDeclaration<T, (T) -> T, T>() {
+) : UpdatableFieldDeclaration<T, (T) -> T, T>() {
     override fun convert(
         key: FieldKey,
         fields: StateContainerBuilder.FieldMap,

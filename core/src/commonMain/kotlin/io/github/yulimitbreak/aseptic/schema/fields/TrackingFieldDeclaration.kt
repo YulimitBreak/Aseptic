@@ -17,7 +17,7 @@ import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking
  */
 class TrackingFieldDeclaration<out T, Update, out TrackedUpdate> internal constructor(
-    private val original: TrackingCapableFieldDeclaration<T, Update, TrackedUpdate>,
+    private val original: UpdatableFieldDeclaration<T, Update, TrackedUpdate>,
     private val link: Link<*, Update>
 ) : TrackableFieldDeclaration<T, Nothing, TrackedUpdate>() {
 
