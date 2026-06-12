@@ -1,6 +1,6 @@
 package io.github.yulimitbreak.aseptic.schema
 
-import io.github.yulimitbreak.aseptic.schema.fields.BackedFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.properties.BackedPropertyDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived1FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived3FieldDeclaration
@@ -211,8 +211,8 @@ abstract class AsepticSchema {
      *  val password = backed("") { "*".repeat(it.length) }
      *  ```
      */
-    protected fun <M, U> backed(initial: M, mapper: (M) -> U): BackedFieldDeclaration<M, U> =
-        BackedFieldDeclaration(initial, mapper)
+    protected fun <M, U> backed(initial: M, mapper: (M) -> U): BackedPropertyDeclaration<M, U> =
+        BackedPropertyDeclaration(initial, mapper)
 
     /**
      * Wires this field to automatically receive updates from [source].
