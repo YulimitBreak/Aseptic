@@ -2,10 +2,10 @@
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
-import io.github.yulimitbreak.aseptic.state.FieldState
+import io.github.yulimitbreak.aseptic.state.FieldKey
+import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.update
 
@@ -14,30 +14,48 @@ import kotlinx.coroutines.flow.update
  *
  * Unlike [MutableValueFieldDeclaration] where the setter writes a value directly, this field
  * accepts *update messages* of type [U] and derives the new state by applying [update] to
- * the current value. All updates are serialized under a per-field mutex.
- * Useful for append-only or event-driven state (e.g. lists, counters).
+ * the current value.
  *
+ * @param initial initial value of the field
+ * @param update produces the next field value from the current one and an incoming update message
  * @param T the type of the field value.
  * @param U the type of the update message.
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.reduced
  */
 class ReducedFieldDeclaration<T, U> internal constructor(
-    /** The value the field holds before any update message is received. */
     internal val initial: T,
-    /** Produces the next field value from the current value and an incoming update message. */
     internal val update: (old: T, update: U) -> T,
-) : FieldDeclaration<T>() {
-    override fun convert(flows: StateContainerBuilder.FlowMap, coroutineScope: CoroutineScope): FieldState<T> =
-        State(initial, update)
+) : TrackingCapableFieldDeclaration<T, U, U>() {
+
+    override fun convert(
+        key: FieldKey,
+        fields: StateContainerBuilder.FieldMap,
+    ): UpdatableFieldState<T, U, U> =
+        State(key, isLockable = true, initial, update)
+
+    override fun convertForTracking(
+        key: FieldKey,
+        fields: StateContainerBuilder.FieldMap
+    ): UpdatableFieldState<T, U, U> = State(key, isLockable = false, initial, update)
 
     private class State<T, U>(
+        key: FieldKey,
+        isLockable: Boolean,
         initial: T,
         private val reducer: (T, U) -> T,
-    ) : UpdatableFieldState<T, U>() {
-        override val flow = MutableStateFlow(initial)
+    ) : UpdatableFieldState<T, U, U>(key, isLockable) {
 
-        override fun doUpdate(update: U) {
-            flow.update { reducer(it, update) }
+        override val value: T get() = stateFlow.value
+
+        override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
+            snapshotFlowBuilder.addSource(key, stateFlow)
+        }
+
+        private val stateFlow = MutableStateFlow(initial)
+
+        override fun doUpdate(update: U): U {
+            stateFlow.update { reducer(it, update) }
+            return update
         }
     }
 }

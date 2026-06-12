@@ -2,52 +2,44 @@
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
-import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.asUpdatable
-import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.locked
+import io.github.yulimitbreak.aseptic.schema.fields.FieldTestUtils.withTryLock
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
-class ReducedFieldDeclarationTest : BehaviorSpec() {
+class ReducedFieldTest : BehaviorSpec() {
 
     init {
         Given("a reduced Int field with an additive reducer") {
             val declaration = ReducedFieldDeclaration(0) { old, update: Int -> old + update }
 
             Then("initial value is preserved") {
-                val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                val state = declaration.convert("field", StateContainerBuilder.FieldMap())
                 state.value shouldBe 0
-                state.flow.value shouldBe 0
             }
 
             When("updated once") {
                 Then("reducer is applied") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
-                        .asUpdatable<Int, Int>()
-                    state.locked { update(5) }
+                    val state = declaration.convert("field", StateContainerBuilder.FieldMap())
+                    state.withTryLock { update(5) }
                     state.value shouldBe 5
-                    state.flow.value shouldBe 5
                 }
             }
 
             When("updated multiple times sequentially") {
                 Then("all updates are folded") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
-                        .asUpdatable<Int, Int>()
-                    state.locked { update(3) }
-                    state.locked { update(7) }
+                    val state = declaration.convert("field", StateContainerBuilder.FieldMap())
+                    state.withTryLock { update(3) }
+                    state.withTryLock { update(7) }
                     state.value shouldBe 10
-                    state.flow.value shouldBe 10
                 }
             }
 
             When("updated repeatedly with the same value") {
                 Then("all updates are accumulated") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
-                        .asUpdatable<Int, Int>()
-                    repeat(10) { state.locked { update(1) } }
+                    val state = declaration.convert("field", StateContainerBuilder.FieldMap())
+                    repeat(10) { state.withTryLock { update(1) } }
                     state.value shouldBe 10
-                    state.flow.value shouldBe 10
                 }
             }
         }
@@ -56,20 +48,17 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
             val declaration = ReducedFieldDeclaration(emptyList<String>()) { old, item: String -> old + item }
 
             Then("initial value is empty list") {
-                val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
+                val state = declaration.convert("field", StateContainerBuilder.FieldMap())
                 state.value shouldBe emptyList<String>()
-                state.flow.value shouldBe emptyList<String>()
             }
 
             When("items appended one by one") {
                 Then("list contains them in order") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
-                        .asUpdatable<List<String>, String>()
-                    state.locked { update("a") }
-                    state.locked { update("b") }
-                    state.locked { update("c") }
+                    val state = declaration.convert("field", StateContainerBuilder.FieldMap())
+                    state.withTryLock { update("a") }
+                    state.withTryLock { update("b") }
+                    state.withTryLock { update("c") }
                     state.value shouldBe listOf("a", "b", "c")
-                    state.flow.value shouldBe listOf("a", "b", "c")
                 }
             }
         }
@@ -83,11 +72,10 @@ class ReducedFieldDeclarationTest : BehaviorSpec() {
 
             When("updated sequentially") {
                 Then("reducer receives the previous accumulated value on each call") {
-                    val state = declaration.convert(StateContainerBuilder.FlowMap(), this)
-                        .asUpdatable<Int, Int>()
-                    state.locked { update(1) }
-                    state.locked { update(2) }
-                    state.locked { update(3) }
+                    val state = declaration.convert("field", StateContainerBuilder.FieldMap())
+                    state.withTryLock { update(1) }
+                    state.withTryLock { update(2) }
+                    state.withTryLock { update(3) }
                     seenOldValues shouldBe listOf(0, 1, 3)
                 }
             }

@@ -14,8 +14,8 @@ package io.github.yulimitbreak.aseptic.schema.fields
  */
 class BackedFieldDeclaration<M, U> internal constructor(initial: M, mapper: (M) -> U) {
     /** The mutable model field written to by operations. */
-    internal val model = MutableValueFieldDeclaration(initial)
+    val model = MutableValueFieldDeclaration(initial)
 
     /** The read-only UI field derived from [model] via the mapper. */
-    internal val ui = Derived1FieldDeclaration(model, mapper)
+    val ui = Derived1FieldDeclaration(model, mapper)
 }

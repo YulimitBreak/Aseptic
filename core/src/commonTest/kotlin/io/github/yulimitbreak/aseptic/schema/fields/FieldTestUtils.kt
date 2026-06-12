@@ -5,41 +5,33 @@ package io.github.yulimitbreak.aseptic.schema.fields
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
-import kotlinx.coroutines.flow.MutableStateFlow
 
 internal object FieldTestUtils {
 
-    fun <T> flowMapWith(
-        decl: FieldDeclaration<T>,
-        flow: MutableStateFlow<T>,
-    ): StateContainerBuilder.FlowMap = StateContainerBuilder.FlowMap().also { it[decl] = flow }
-
-    fun flowMapWith(
-        vararg entries: Pair<FieldDeclaration<*>, MutableStateFlow<*>>,
-    ): StateContainerBuilder.FlowMap = StateContainerBuilder.FlowMap().also { map ->
-        entries.forEach { (decl, flow) -> map[decl] = flow }
-    }
-
-    fun flowMapWith(
-        decls: List<FieldDeclaration<*>>,
-        flows: List<MutableStateFlow<*>>,
-    ): StateContainerBuilder.FlowMap = StateContainerBuilder.FlowMap().also { map ->
-        decls.zip(flows).forEach { (decl, flow) -> map[decl] = flow }
-    }
-
     @Suppress("UNCHECKED_CAST")
-    fun <T, U> FieldState<T>.asUpdatable() = this as UpdatableFieldState<T, U>
+    fun fieldMapWith(
+        vararg entries: Pair<FieldDeclaration<*>, FieldState<*>>,
+    ): StateContainerBuilder.FieldMap = StateContainerBuilder.FieldMap().also { map ->
+        entries.forEach { (decl, state) ->
+            map[decl] = state
+        }
+    }
 
-    suspend fun <T, U> UpdatableFieldState<T, U>.locked(block: UpdatableFieldState<T, U>.() -> Unit) {
-        lock()
+    fun fieldMapWith(
+        decls: List<FieldDeclaration<*>>,
+        states: List<FieldState<*>>,
+    ): StateContainerBuilder.FieldMap = fieldMapWith(*decls.zip(states).toTypedArray())
+
+    fun <T, U, LU> UpdatableFieldState<T, U, LU>.withTryLock(block: UpdatableFieldState<T, U, LU>.() -> Unit) {
+        check(tryLock()) { "withTryLock() on a locked field" }
         try { block() } finally { unlock() }
     }
 
-    fun <T> UpdatableFieldState<T?, MessageFieldDeclaration.Update<T>>.enqueue(message: T) {
+    fun <T : Any> UpdatableFieldState<T?, MessageFieldDeclaration.Update<T>, Unit>.enqueue(message: T) {
         update(MessageFieldDeclaration.Update.Enqueue(message))
     }
 
-    fun <T> UpdatableFieldState<T?, MessageFieldDeclaration.Update<T>>.dequeue() {
+    fun <T : Any> UpdatableFieldState<T?, MessageFieldDeclaration.Update<T>, Unit>.dequeue() {
         update(MessageFieldDeclaration.Update.Dequeue)
     }
 }

@@ -8,6 +8,8 @@ complexity:
     threshold: 600
   LongParameterList:
     active: false
+  TooManyFunctions:
+    active: false # for DSL
 
 naming:
   MatchingDeclarationName:

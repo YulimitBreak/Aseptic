@@ -3,6 +3,7 @@
 package io.github.yulimitbreak.aseptic.state
 
 import io.github.yulimitbreak.aseptic.schema.fields.Derived1FieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MutableValueFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
 import io.kotest.assertions.assertSoftly
@@ -18,9 +19,9 @@ import kotlinx.coroutines.launch
 
 class StateContainerTest : BehaviorSpec() {
 
-    private fun CoroutineScope.buildContainer(
+    private fun buildContainer(
         build: StateContainerBuilder.() -> Unit,
-    ): StateContainer = StateContainerBuilder(this).apply(build).build()
+    ): StateContainer = StateContainerBuilder().apply(build).build()
 
     init {
         coroutineTestScope = true
@@ -30,7 +31,7 @@ class StateContainerTest : BehaviorSpec() {
 
             Then("get() returns initial value") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addField("count", false, countDecl)
                 }
                 container.get<Int>("count") shouldBe 10
@@ -40,7 +41,7 @@ class StateContainerTest : BehaviorSpec() {
             When("field is updated via update()") {
                 Then("get() reflects new value") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("count", false, countDecl)
                     }
                     container.update<(Int) -> Int>("count") { it + 5 }
@@ -50,7 +51,7 @@ class StateContainerTest : BehaviorSpec() {
 
                 Then("successive updates are applied in order") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("count", false, countDecl)
                     }
                     container.update<(Int) -> Int>("count") { it + 5 }
@@ -64,7 +65,7 @@ class StateContainerTest : BehaviorSpec() {
         Given("a container with a static field") {
             Then("get() returns the static value") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addStaticField("step", false, 7)
                 }
                 container.get<Int>("step") shouldBe 7
@@ -78,7 +79,7 @@ class StateContainerTest : BehaviorSpec() {
 
             Then("derived field reflects initial source value") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addField("source", false, sourceDecl)
                     addField("squared", false, squaredDecl)
                 }
@@ -89,13 +90,29 @@ class StateContainerTest : BehaviorSpec() {
             When("source field is updated") {
                 Then("derived field updates accordingly") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("source", false, sourceDecl)
                         addField("squared", false, squaredDecl)
                     }
                     container.update<(Int) -> Int>("source") { 5 }
                     testCoroutineScheduler.advanceUntilIdle()
                     container.get<Int>("squared") shouldBe 25
+                    scope.cancel()
+                }
+            }
+
+            When("generateSnapshot specifies the derived field in lockRequest") {
+                Then("snapshot reflects the correct derived value") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = buildContainer {
+                        addField("source", false, sourceDecl)
+                        addField("derived", false, squaredDecl)
+                    }
+                    container.update<(Int) -> Int>("source") { 4 }
+                    val snapshot = container.generateSnapshot(setOf("derived")) { map ->
+                        map.get<Int>("derived")
+                    }
+                    snapshot shouldBe 16
                     scope.cancel()
                 }
             }
@@ -107,14 +124,14 @@ class StateContainerTest : BehaviorSpec() {
             val aDecl = ReducedFieldDeclaration(0) { _, update: Int -> update }
             val bDecl = ReducedFieldDeclaration(0) { _, update: Int -> update }
 
-            When("updateAtomic with empty lockRequest writes both fields") {
+            When("updateAtomic deferred writes both fields") {
                 Then("both fields reflect new values") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("a", false, aDecl)
                         addField("b", false, bDecl)
                     }
-                    container.updateAtomic(emptySet()) { mapOf("a" to 10, "b" to 20) }
+                    container.updateAtomic { mapOf("a" to 10, "b" to 20) }
                     assertSoftly {
                         container.get<Int>("a") shouldBe 10
                         container.get<Int>("b") shouldBe 20
@@ -123,14 +140,14 @@ class StateContainerTest : BehaviorSpec() {
                 }
             }
 
-            When("updateAtomic with empty lockRequest returns empty map") {
+            When("updateAtomic deferred returns empty map") {
                 Then("fields are unchanged") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("a", false, aDecl)
                         addField("b", false, bDecl)
                     }
-                    container.updateAtomic(emptySet()) { emptyMap() }
+                    container.updateAtomic { emptyMap() }
                     assertSoftly {
                         container.get<Int>("a") shouldBe 0
                         container.get<Int>("b") shouldBe 0
@@ -142,7 +159,7 @@ class StateContainerTest : BehaviorSpec() {
             When("updateAtomic with pre-locked fields matching writes") {
                 Then("both fields reflect new values") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("a", false, aDecl)
                         addField("b", false, bDecl)
                     }
@@ -158,7 +175,7 @@ class StateContainerTest : BehaviorSpec() {
             When("updateAtomic pre-locked writes a field not in lockRequest") {
                 Then("check fails with IllegalStateException") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("a", false, aDecl)
                         addField("b", false, bDecl)
                     }
@@ -172,7 +189,7 @@ class StateContainerTest : BehaviorSpec() {
             When("two concurrent pre-locked atomics on the same field") {
                 Then("both complete and one value wins") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("a", false, aDecl)
                         addField("b", false, bDecl)
                     }
@@ -197,11 +214,11 @@ class StateContainerTest : BehaviorSpec() {
 
             Then("full snapshot returns all current field values") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addField("x", false, xDecl)
                     addField("y", false, yDecl)
                 }
-                val snapshot = container.generateSnapshot(emptySet()) { map ->
+                val snapshot = container.generateSnapshot { map ->
                     map.get<Int>("x") to map.get<Int>("y")
                 }
                 assertSoftly {
@@ -213,7 +230,7 @@ class StateContainerTest : BehaviorSpec() {
 
             Then("fine-grained snapshot returns specified field value") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addField("x", false, xDecl)
                     addField("y", false, yDecl)
                 }
@@ -225,12 +242,12 @@ class StateContainerTest : BehaviorSpec() {
             When("fields are updated then snapshot taken") {
                 Then("snapshot reflects updated values") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("x", false, xDecl)
                         addField("y", false, yDecl)
                     }
-                    container.updateAtomic(emptySet()) { mapOf("x" to 99, "y" to 77) }
-                    val snapshot = container.generateSnapshot(emptySet()) { map ->
+                    container.updateAtomic { mapOf("x" to 99, "y" to 77) }
+                    val snapshot = container.generateSnapshot { map ->
                         map.get<Int>("x") to map.get<Int>("y")
                     }
                     assertSoftly {
@@ -247,7 +264,7 @@ class StateContainerTest : BehaviorSpec() {
 
             Then("asFlow() emits initial value") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addField("count", false, countDecl)
                 }
                 container.asFlow<Int>("count").first() shouldBe 7
@@ -257,7 +274,7 @@ class StateContainerTest : BehaviorSpec() {
             When("field is updated") {
                 Then("asFlow() emits updated value") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("count", false, countDecl)
                     }
                     container.update<(Int) -> Int>("count") { it + 3 }
@@ -273,7 +290,7 @@ class StateContainerTest : BehaviorSpec() {
             When("two concurrent update() calls on the same field") {
                 Then("both complete without deadlock") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("count", false, countDecl)
                     }
                     launch { container.update("count", 1) }
@@ -293,7 +310,7 @@ class StateContainerTest : BehaviorSpec() {
             When("updateAtomic pre-locked writes only a subset of lockRequest") {
                 Then("written field updates, unlocked field unchanged") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("a", false, aDecl)
                         addField("b", false, bDecl)
                     }
@@ -313,7 +330,7 @@ class StateContainerTest : BehaviorSpec() {
 
             Then("uiFlow initial value maps only ui fields") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addField("visible", true, visibleDecl)
                     addField("hidden", false, hiddenDecl)
                 }
@@ -325,12 +342,12 @@ class StateContainerTest : BehaviorSpec() {
             When("ui field is updated") {
                 Then("uiFlow emits the updated value") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("visible", true, visibleDecl)
                         addField("hidden", false, hiddenDecl)
                     }
                     val uiFlow = container.uiFlow(scope) { map -> map.get<Int>("visible") }
-                    container.update<Int>("visible", 42)
+                    container.update("visible", 42)
                     testCoroutineScheduler.advanceUntilIdle()
                     uiFlow.value shouldBe 42
                     scope.cancel()
@@ -340,13 +357,13 @@ class StateContainerTest : BehaviorSpec() {
             When("non-ui field is updated") {
                 Then("uiFlow value does not change") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("visible", true, visibleDecl)
                         addField("hidden", false, hiddenDecl)
                     }
                     val uiFlow = container.uiFlow(scope) { map -> map.get<Int>("visible") }
                     val before = uiFlow.value
-                    container.update<Int>("hidden", 999)
+                    container.update("hidden", 999)
                     testCoroutineScheduler.advanceUntilIdle()
                     uiFlow.value shouldBe before
                     scope.cancel()
@@ -360,7 +377,7 @@ class StateContainerTest : BehaviorSpec() {
 
             Then("uiFlow initial value combines both fields") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addField("foo", true, fooDecl)
                     addField("bar", true, barDecl)
                 }
@@ -377,20 +394,20 @@ class StateContainerTest : BehaviorSpec() {
             When("either ui field is updated") {
                 Then("uiFlow emits updated combined value") {
                     val scope = CoroutineScope(coroutineContext + Job())
-                    val container = scope.buildContainer {
+                    val container = buildContainer {
                         addField("foo", true, fooDecl)
                         addField("bar", true, barDecl)
                     }
                     val uiFlow = container.uiFlow(scope) { map ->
                         map.get<Int>("foo") to map.get<Int>("bar")
                     }
-                    container.update<Int>("foo", 10)
+                    container.update("foo", 10)
                     testCoroutineScheduler.advanceUntilIdle()
                     assertSoftly {
                         uiFlow.value.first shouldBe 10
                         uiFlow.value.second shouldBe 2
                     }
-                    container.update<Int>("bar", 20)
+                    container.update("bar", 20)
                     testCoroutineScheduler.advanceUntilIdle()
                     assertSoftly {
                         uiFlow.value.first shouldBe 10
@@ -401,10 +418,33 @@ class StateContainerTest : BehaviorSpec() {
             }
         }
 
+        Given("a container with two mutables and a derived field combining both") {
+            val aDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
+            val bDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
+            val derivedDecl = Derived2FieldDeclaration(aDecl, bDecl) { a, b -> a + b }
+
+            When("generateSnapshot specifies the derived field in lockRequest") {
+                Then("snapshot reflects the consistent combined value") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = buildContainer {
+                        addField("a", false, aDecl)
+                        addField("b", false, bDecl)
+                        addField("derived", false, derivedDecl)
+                    }
+                    container.updateAtomic { mapOf("a" to 3, "b" to 7) }
+                    val snapshot = container.generateSnapshot(setOf("derived")) { map ->
+                        map.get<Int>("derived")
+                    }
+                    snapshot shouldBe 10
+                    scope.cancel()
+                }
+            }
+        }
+
         Given("a container with a ui-visible static field") {
             Then("uiFlow initial value includes static field value") {
                 val scope = CoroutineScope(coroutineContext + Job())
-                val container = scope.buildContainer {
+                val container = buildContainer {
                     addStaticField("label", true, "hello")
                 }
                 val uiFlow = container.uiFlow(scope) { map -> map.get<String>("label") }

@@ -2,22 +2,58 @@
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
+import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
-import kotlinx.coroutines.CoroutineScope
+import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 
 /**
- * Marker interface for all field declarations in an [io.github.yulimitbreak.aseptic.schema.AsepticSchema].
+ * Base class for all field declarations in an [io.github.yulimitbreak.aseptic.schema.AsepticSchema].
  *
  * A field declaration is a pure, stateless descriptor created at schema definition time.
- * It carries the information the runtime needs to construct the corresponding [FieldState][io.github.yulimitbreak.aseptic.state.FieldState],
+ * It carries the information the runtime needs to construct the corresponding
+ * [FieldState][io.github.yulimitbreak.aseptic.state.FieldState],
  * but holds no mutable state itself.
  *
  * @param T the type of the field value
  */
 abstract class FieldDeclaration<out T> internal constructor() {
     internal abstract fun convert(
-        flows: StateContainerBuilder.FlowMap,
-        coroutineScope: CoroutineScope
+        key: FieldKey,
+        fields: StateContainerBuilder.FieldMap,
     ): FieldState<T>
+}
+
+/**
+ * A [FieldDeclaration] that produces an [UpdatableFieldState], and can be a source for tracking fields
+ * via [tracking][io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking]
+ *
+ * @param T the type of the field value.
+ * @param Update the type of the write message.
+ * @param TrackedUpdate the value propagated to tracking fields after each write.
+ */
+abstract class TrackableFieldDeclaration<out T, in Update, out TrackedUpdate> internal constructor() :
+    FieldDeclaration<T>() {
+
+    abstract override fun convert(
+        key: FieldKey,
+        fields: StateContainerBuilder.FieldMap,
+    ): UpdatableFieldState<T, Update, TrackedUpdate>
+}
+
+/**
+ * A [TrackableFieldDeclaration] that can also be a target of tracking, meaning it can wrap
+ * an original field declaration and receive updates via [tracking][io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking].
+ *
+ * @param T the type of the field value.
+ * @param Update the type of the write message.
+ * @param TrackedUpdate the value propagated to tracking fields after each write.
+ */
+abstract class TrackingCapableFieldDeclaration<out T, in Update, out TrackedUpdate> internal constructor() :
+    TrackableFieldDeclaration<T, Update, TrackedUpdate>() {
+
+    internal abstract fun convertForTracking(
+        key: FieldKey,
+        fields: StateContainerBuilder.FieldMap,
+    ): UpdatableFieldState<T, Update, TrackedUpdate>
 }

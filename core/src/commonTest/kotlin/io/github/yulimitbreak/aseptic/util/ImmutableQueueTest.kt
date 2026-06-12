@@ -9,6 +9,9 @@ import io.kotest.matchers.nulls.shouldBeNull
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldHaveSameHashCodeAs
 import io.kotest.property.Arb
+import io.kotest.property.arbitrary.boolean
+import io.kotest.property.arbitrary.constant
+import io.kotest.property.arbitrary.flatMap
 import io.kotest.property.arbitrary.int
 import io.kotest.property.arbitrary.list
 import io.kotest.property.arbitrary.map
@@ -146,6 +149,42 @@ class ImmutableQueueTest : BehaviorSpec() {
                 }
             }
         }
+
+        Given("An arbitrary interleaved sequence of enqueue and dequeue operations") {
+            Then("queue state matches a reference ArrayDeque at every step") {
+                val opArb = Arb.boolean().flatMap { enqueue ->
+                    if (enqueue) {
+                        Arb.int().map { Op.Enqueue(it) }
+                    } else {
+                        Arb.constant(Op.Dequeue)
+                    }
+                }
+                checkAll(Arb.list(opArb, 0..100)) { ops ->
+                    val reference = ArrayDeque<Int>()
+                    var queue = ImmutableQueue<Int>()
+                    for (op in ops) {
+                        when (op) {
+                            is Op.Enqueue -> {
+                                reference.addLast(op.value)
+                                queue += op.value
+                            }
+
+                            is Op.Dequeue -> {
+                                reference.removeFirstOrNull()
+                                queue = queue.drop()
+                            }
+                        }
+                        queue.next shouldBe reference.firstOrNull()
+                        queue.size shouldBe reference.size
+                    }
+                }
+            }
+        }
+    }
+
+    private sealed interface Op {
+        data class Enqueue(val value: Int) : Op
+        data object Dequeue : Op
     }
 
     private fun <T> Iterable<T>.toImmutableQueue(): ImmutableQueue<T> =
