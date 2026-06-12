@@ -1,6 +1,5 @@
 package io.github.yulimitbreak.aseptic.schema
 
-import io.github.yulimitbreak.aseptic.schema.properties.BackedPropertyDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived1FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived3FieldDeclaration
@@ -10,8 +9,10 @@ import io.github.yulimitbreak.aseptic.schema.fields.MessageFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MutableValueFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.TrackableFieldDeclaration
-import io.github.yulimitbreak.aseptic.schema.fields.UpdatableFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.TrackingFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.UpdatableFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.properties.BackedPropertyDeclaration
+import io.github.yulimitbreak.aseptic.schema.properties.LensPropertyDeclaration
 
 /**
  * Base class for Aseptic schema definitions.
@@ -197,8 +198,6 @@ abstract class AsepticSchema {
     protected fun <T : Any> message(): MessageFieldDeclaration<T> = MessageFieldDeclaration()
 
     /**
-     * Declares a composite field with separate internal and UI-facing representations.
-     *
      * Shorthand for declaring a `@Model`-annotated [mutable] field paired with a `@Ui`-annotated
      * [derived] field with the same name that transforms it.
      *
@@ -213,6 +212,27 @@ abstract class AsepticSchema {
      */
     protected fun <M, U> backed(initial: M, mapper: (M) -> U): BackedPropertyDeclaration<M, U> =
         BackedPropertyDeclaration(initial, mapper)
+
+    /**
+     * Declares a special lens property, that generates a special data class (named the same as the
+     * schema member name, unless [className] is specified) and a handle for it in XxxxHandle class,
+     * that returns an instance populated with consistent current data.
+     *
+     * If any fields are [mutable], also creates a method to update the mutable fields atomically
+     *
+     * In a way, it's basically a syntax sugar for calling snapshot or atomic using the specified
+     * fields as a lockRequest
+     *
+     * TODO use proper name references and example once handle is finalized
+     */
+    @Suppress("unused")
+    protected fun lens(
+        first: FieldDeclaration<*>,
+        second: FieldDeclaration<*>,
+        vararg other: FieldDeclaration<*>,
+        className: String? = null
+    ) =
+        LensPropertyDeclaration
 
     /**
      * Wires this field to automatically receive updates from [source].
