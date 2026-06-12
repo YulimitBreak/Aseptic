@@ -12,13 +12,13 @@ import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
 @AsepticInternal
 class StateContainerBuilder {
 
-    private val fields = mutableMapOf<String, FieldState<*>>()
+    private val fields = mutableMapOf<FieldKey, FieldState<*>>()
 
     private val lockingOrder = mutableListOf<UpdatableFieldState<*, *, *>>()
 
     private val fieldMap = FieldMap()
 
-    private val uiFields = mutableSetOf<String>()
+    private val uiFields = mutableSetOf<FieldKey>()
 
     /**
      * Registers a non-field schema member as a static (never-changing) field.
@@ -26,26 +26,26 @@ class StateContainerBuilder {
      * Used for schema constructor parameters and plain `val` members that are referenced by
      * derived fields.
      */
-    fun <T> addStaticField(name: String, uiVisible: Boolean, value: T) {
-        fields[name] = StaticFieldState(name, value)
-        if (uiVisible) uiFields += name
+    fun <T> addStaticField(key: FieldKey, uiVisible: Boolean, value: T) {
+        fields[key] = StaticFieldState(key, value)
+        if (uiVisible) uiFields += key
     }
 
     /**
-     * Converts [field] into a live [FieldState] and registers it using the [name].
+     * Converts [field] into a live [FieldState] and registers it using the [key].
      * Setting [uiVisible] as true adds the dependency of UI mapper on this field.
      *
      * Updatable fields added create a canonical locking order, to have a consistent
      * order to lock fields without deadlocks
      */
-    fun <T> addField(name: String, uiVisible: Boolean, field: FieldDeclaration<T>) {
-        val state = field.convert(name, fieldMap)
-        fields[name] = state
+    fun <T> addField(key: FieldKey, uiVisible: Boolean, field: FieldDeclaration<T>) {
+        val state = field.convert(key, fieldMap)
+        fields[key] = state
         if (state is UpdatableFieldState<*, *, *> && state.isLockable) {
             lockingOrder += state
         }
         fieldMap[field] = state
-        if (uiVisible) uiFields += name
+        if (uiVisible) uiFields += key
     }
 
     /**
@@ -60,10 +60,10 @@ class StateContainerBuilder {
     /**
      * A trivial [FieldState] to be able to handle static values as fields
      */
-    private class StaticFieldState<T>(name: String, override val value: T) : FieldState<T>(name) {
+    private class StaticFieldState<T>(key: FieldKey, override val value: T) : FieldState<T>(key) {
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
-            snapshotFlowBuilder.addMapper(name) { value }
+            snapshotFlowBuilder.addMapper(key) { value }
         }
     }
 

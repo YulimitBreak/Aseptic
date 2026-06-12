@@ -2,6 +2,7 @@
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
+import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
@@ -18,7 +19,7 @@ import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
  */
 abstract class FieldDeclaration<out T> internal constructor() {
     internal abstract fun convert(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
     ): FieldState<T>
 }
@@ -29,15 +30,15 @@ abstract class FieldDeclaration<out T> internal constructor() {
  *
  * @param T the type of the field value.
  * @param Update the type of the write message.
- * @param TrackableUpdate the value propagated to tracking fields after each write.
+ * @param TrackedUpdate the value propagated to tracking fields after each write.
  */
-abstract class TrackableFieldDeclaration<out T, in Update, out TrackableUpdate> internal constructor() :
+abstract class TrackableFieldDeclaration<out T, in Update, out TrackedUpdate> internal constructor() :
     FieldDeclaration<T>() {
 
     abstract override fun convert(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
-    ): UpdatableFieldState<T, Update, TrackableUpdate>
+    ): UpdatableFieldState<T, Update, TrackedUpdate>
 }
 
 /**
@@ -46,13 +47,13 @@ abstract class TrackableFieldDeclaration<out T, in Update, out TrackableUpdate> 
  *
  * @param T the type of the field value.
  * @param Update the type of the write message.
- * @param TrackableUpdate the value propagated to tracking fields after each write.
+ * @param TrackedUpdate the value propagated to tracking fields after each write.
  */
-abstract class TrackingCapableFieldDeclaration<out T, in Update, out TrackableUpdate> internal constructor() :
-    TrackableFieldDeclaration<T, Update, TrackableUpdate>() {
+abstract class TrackingCapableFieldDeclaration<out T, in Update, out TrackedUpdate> internal constructor() :
+    TrackableFieldDeclaration<T, Update, TrackedUpdate>() {
 
     internal abstract fun convertForTracking(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
-    ): UpdatableFieldState<T, Update, TrackableUpdate>
+    ): UpdatableFieldState<T, Update, TrackedUpdate>
 }

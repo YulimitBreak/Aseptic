@@ -2,6 +2,7 @@
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
+import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
@@ -36,17 +37,17 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
     }
 
     override fun convert(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
-    ): FieldState<T?> = State(name)
+    ): FieldState<T?> = State(key)
 
-    private class State<T : Any>(name: String) : UpdatableFieldState<T?, Update<T>, Unit>(name) {
+    private class State<T : Any>(key: FieldKey) : UpdatableFieldState<T?, Update<T>, Unit>(key) {
         private val queueFlow = MutableStateFlow<ImmutableQueue<T>>(ImmutableQueue())
 
         override val value: T? get() = queueFlow.value.next
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
-            snapshotFlowBuilder.addSource(name, queueFlow.map { it.next })
+            snapshotFlowBuilder.addSource(key, queueFlow.map { it.next })
         }
 
         override fun doUpdate(update: Update<T>) {

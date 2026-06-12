@@ -2,6 +2,7 @@
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
+import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
 
@@ -21,10 +22,10 @@ class TrackingFieldDeclaration<out T, Update, out TrackedUpdate> internal constr
 ) : TrackableFieldDeclaration<T, Nothing, TrackedUpdate>() {
 
     override fun convert(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
     ): UpdatableFieldState<T, Nothing, TrackedUpdate> {
-        val state = original.convertForTracking(name, fields)
+        val state = original.convertForTracking(key, fields)
         link.registerUpdate(fields, state)
         return state
     }

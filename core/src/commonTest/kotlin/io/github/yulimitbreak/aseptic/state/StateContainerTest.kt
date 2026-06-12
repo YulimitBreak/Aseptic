@@ -124,14 +124,14 @@ class StateContainerTest : BehaviorSpec() {
             val aDecl = ReducedFieldDeclaration(0) { _, update: Int -> update }
             val bDecl = ReducedFieldDeclaration(0) { _, update: Int -> update }
 
-            When("updateAtomic with empty lockRequest writes both fields") {
+            When("updateAtomic deferred writes both fields") {
                 Then("both fields reflect new values") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val container = buildContainer {
                         addField("a", false, aDecl)
                         addField("b", false, bDecl)
                     }
-                    container.updateAtomic(emptySet()) { mapOf("a" to 10, "b" to 20) }
+                    container.updateAtomic { mapOf("a" to 10, "b" to 20) }
                     assertSoftly {
                         container.get<Int>("a") shouldBe 10
                         container.get<Int>("b") shouldBe 20
@@ -140,14 +140,14 @@ class StateContainerTest : BehaviorSpec() {
                 }
             }
 
-            When("updateAtomic with empty lockRequest returns empty map") {
+            When("updateAtomic deferred returns empty map") {
                 Then("fields are unchanged") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val container = buildContainer {
                         addField("a", false, aDecl)
                         addField("b", false, bDecl)
                     }
-                    container.updateAtomic(emptySet()) { emptyMap() }
+                    container.updateAtomic { emptyMap() }
                     assertSoftly {
                         container.get<Int>("a") shouldBe 0
                         container.get<Int>("b") shouldBe 0
@@ -218,7 +218,7 @@ class StateContainerTest : BehaviorSpec() {
                     addField("x", false, xDecl)
                     addField("y", false, yDecl)
                 }
-                val snapshot = container.generateSnapshot(emptySet()) { map ->
+                val snapshot = container.generateSnapshot { map ->
                     map.get<Int>("x") to map.get<Int>("y")
                 }
                 assertSoftly {
@@ -246,8 +246,8 @@ class StateContainerTest : BehaviorSpec() {
                         addField("x", false, xDecl)
                         addField("y", false, yDecl)
                     }
-                    container.updateAtomic(emptySet()) { mapOf("x" to 99, "y" to 77) }
-                    val snapshot = container.generateSnapshot(emptySet()) { map ->
+                    container.updateAtomic { mapOf("x" to 99, "y" to 77) }
+                    val snapshot = container.generateSnapshot { map ->
                         map.get<Int>("x") to map.get<Int>("y")
                     }
                     assertSoftly {
@@ -431,7 +431,7 @@ class StateContainerTest : BehaviorSpec() {
                         addField("b", false, bDecl)
                         addField("derived", false, derivedDecl)
                     }
-                    container.updateAtomic(emptySet()) { mapOf("a" to 3, "b" to 7) }
+                    container.updateAtomic { mapOf("a" to 3, "b" to 7) }
                     val snapshot = container.generateSnapshot(setOf("derived")) { map ->
                         map.get<Int>("derived")
                     }

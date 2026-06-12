@@ -14,8 +14,7 @@ import kotlinx.coroutines.sync.Mutex
  * - Writable fields (mutable, reduced, message, tracking): extend [UpdatableFieldState].
  */
 internal abstract class FieldState<out T>(
-    /** Name of this field in the owning schema. */
-    val name: String,
+    val key: FieldKey,
 ) {
 
     /**
@@ -49,20 +48,17 @@ internal abstract class FieldState<out T>(
 }
 
 /**
- * A [FieldState] that accepts writes serialized under a per-field [Mutex].
- *
- * The mutex is owned by this class and is exposed only via [lock]/[unlock], which are called
- * by [StateContainer] when orchestrating atomic commits. [update] can only be called while the
- * mutex is held.
+ * A [FieldState] that accepts writes. If [isLockable] is `true`, creates a mutex, and
+ * requires all [update] calls to obtain the mutex instead.
  *
  * @param T the type of the field value.
  * @param Update the type of the write message accepted by this field.
  * @param TrackedUpdate the value emitted to linked fields after each write.
  */
 internal abstract class UpdatableFieldState<out T, in Update, out TrackedUpdate>(
-    name: String,
+    key: FieldKey,
     val isLockable: Boolean = true,
-) : FieldState<T>(name) {
+) : FieldState<T>(key) {
 
     private val updateCallbacks: MutableList<(TrackedUpdate) -> Unit> = mutableListOf()
 

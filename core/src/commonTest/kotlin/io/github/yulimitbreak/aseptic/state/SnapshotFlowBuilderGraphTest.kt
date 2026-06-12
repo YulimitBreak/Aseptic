@@ -46,14 +46,14 @@ class SnapshotFlowBuilderGraphTest : BehaviorSpec() {
                         testCoroutineScheduler.advanceUntilIdle()
 
                         selection.forEach { field ->
-                            emissions.last().get<Int>(field.name) shouldBe field.getter()
+                            emissions.last().get<Int>(field.key) shouldBe field.getter()
                         }
 
                         graph.sources.forEach { it.setter(it.getter() + 7) }
                         testCoroutineScheduler.advanceUntilIdle()
 
                         selection.forEach { field ->
-                            emissions.last().get<Int>(field.name) shouldBe field.getter()
+                            emissions.last().get<Int>(field.key) shouldBe field.getter()
                         }
                         scope.cancel()
                     }
@@ -95,19 +95,19 @@ class SnapshotFlowBuilderGraphTest : BehaviorSpec() {
 
     private sealed interface Field {
 
-        val name: String
+        val key: String
         val getter: () -> Int
         val buildFlow: (SnapshotFlowBuilder) -> Unit
 
         class Source(
-            override val name: String,
+            override val key: String,
             override val getter: () -> Int,
             override val buildFlow: (SnapshotFlowBuilder) -> Unit,
             val setter: (Int) -> Unit,
         ) : Field
 
         class Mapping(
-            override val name: String,
+            override val key: String,
             override val getter: () -> Int,
             override val buildFlow: (SnapshotFlowBuilder) -> Unit,
             val dependsOn: Set<Source>,
@@ -151,7 +151,7 @@ class SnapshotFlowBuilderGraphTest : BehaviorSpec() {
             if (decl is MutableValueFieldDeclaration) {
                 val state = decl.convert("F$index[s]", fieldMap)
                 sources += Field.Source(
-                    name = state.name,
+                    key = state.key,
                     getter = { state.value },
                     setter = { value -> state.withTryLock { update { value } } },
                     buildFlow = { builder -> state.buildSnapshotFlow(builder) },
@@ -160,11 +160,11 @@ class SnapshotFlowBuilderGraphTest : BehaviorSpec() {
             } else {
                 val state = decl.convert("F$index[d]", fieldMap)
                 mappers += Field.Mapping(
-                    name = state.name,
+                    key = state.key,
                     getter = { state.value },
                     buildFlow = { builder -> state.buildSnapshotFlow(builder) },
                     dependsOn = state.getUpdateSources().mapTo(mutableSetOf()) { source ->
-                        sources.find { it.name == source.name }!!
+                        sources.find { it.key == source.key }!!
                     },
                 )
                 fieldMap[decl] = state

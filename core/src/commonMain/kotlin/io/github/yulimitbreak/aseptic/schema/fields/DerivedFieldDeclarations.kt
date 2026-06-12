@@ -2,6 +2,7 @@
 
 package io.github.yulimitbreak.aseptic.schema.fields
 
+import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
@@ -17,19 +18,20 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
     internal val mapper: (T1) -> R,
 ) : FieldDeclaration<R>() {
     override fun convert(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
     ): FieldState<R> =
-        State(name, fields[source1], mapper)
+        State(key, fields[source1], mapper)
 
     private class State<T1, R>(
-        name: String,
+        key: FieldKey,
         private val source: FieldState<T1>,
         private val mapper: (T1) -> R,
-    ) : FieldState<R>(name) {
+    ) : FieldState<R>(key) {
 
         override val dependencies: Set<FieldState<*>> = setOf(source)
 
+        @Volatile
         private var cache: Pair<T1, R> = source.value.let { it to mapper(it) }
 
         private fun compute(s1: T1): R {
@@ -42,7 +44,7 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
             source.buildSnapshotFlow(snapshotFlowBuilder)
-            snapshotFlowBuilder.addMapper(name) { map -> compute(map[source.name]) }
+            snapshotFlowBuilder.addMapper(key) { map -> compute(map[source.key]) }
         }
     }
 }
@@ -59,20 +61,21 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
     internal val mapper: (T1, T2) -> R,
 ) : FieldDeclaration<R>() {
     override fun convert(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
     ): FieldState<R> =
-        State(name, fields[source1], fields[source2], mapper)
+        State(key, fields[source1], fields[source2], mapper)
 
     private class State<T1, T2, R>(
-        name: String,
+        key: FieldKey,
         private val source1: FieldState<T1>,
         private val source2: FieldState<T2>,
         private val mapper: (T1, T2) -> R,
-    ) : FieldState<R>(name) {
+    ) : FieldState<R>(key) {
 
         override val dependencies = setOf(source1, source2)
 
+        @Volatile
         private var cache: Triple<T1, T2, R> =
             Triple(source1.value, source2.value, mapper(source1.value, source2.value))
 
@@ -87,7 +90,7 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
             source1.buildSnapshotFlow(snapshotFlowBuilder)
             source2.buildSnapshotFlow(snapshotFlowBuilder)
-            snapshotFlowBuilder.addMapper(name) { map -> compute(map[source1.name], map[source2.name]) }
+            snapshotFlowBuilder.addMapper(key) { map -> compute(map[source1.key], map[source2.key]) }
         }
     }
 }
@@ -106,23 +109,24 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
 ) : FieldDeclaration<R>() {
 
     override fun convert(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
     ): FieldState<R> =
-        State(name, fields[source1], fields[source2], fields[source3], mapper)
+        State(key, fields[source1], fields[source2], fields[source3], mapper)
 
     private class State<T1, T2, T3, R>(
-        name: String,
+        key: FieldKey,
         private val source1: FieldState<T1>,
         private val source2: FieldState<T2>,
         private val source3: FieldState<T3>,
         private val mapper: (T1, T2, T3) -> R,
-    ) : FieldState<R>(name) {
+    ) : FieldState<R>(key) {
 
         override val dependencies = setOf(source1, source2, source3)
 
         private data class Cache<T1, T2, T3, R>(val s1: T1, val s2: T2, val s3: T3, val result: R)
 
+        @Volatile
         private var cache = Cache(
             source1.value,
             source2.value,
@@ -143,8 +147,8 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
             source2.buildSnapshotFlow(snapshotFlowBuilder)
             source3.buildSnapshotFlow(snapshotFlowBuilder)
             snapshotFlowBuilder.addMapper(
-                name
-            ) { map -> compute(map[source1.name], map[source2.name], map[source3.name]) }
+                key
+            ) { map -> compute(map[source1.key], map[source2.key], map[source3.key]) }
         }
     }
 }
@@ -161,36 +165,42 @@ class DerivedNFieldDeclaration<T, R> internal constructor(
 ) : FieldDeclaration<R>() {
     @Suppress("UNCHECKED_CAST")
     override fun convert(
-        name: String,
+        key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
     ): FieldState<R> =
         State(
-            name = name,
+            key = key,
             sources = sources.map { fields[it] } as List<FieldState<Any?>>,
             mapper = mapper as (List<Any?>) -> R,
         )
 
     private class State<R>(
-        name: String,
+        key: FieldKey,
         private val sources: List<FieldState<Any?>>,
         private val mapper: (List<Any?>) -> R,
-    ) : FieldState<R>(name) {
+    ) : FieldState<R>(key) {
 
         override val dependencies = sources.toSet()
 
+        @Volatile
         private var cache: Pair<List<Any?>, R> = sources.map { it.value }.let { it to mapper(it) }
 
-        private fun compute(inputs: List<Any?>): R {
-            val c = cache
-            if (c.first == inputs) return c.second
-            return mapper(inputs).also { cache = inputs to it }
+        private fun compute(inputProvider: (FieldState<Any?>) -> Any?): R {
+            val (cacheKey, cacheValue) = cache
+            sources.forEachIndexed { index, state ->
+                if (cacheKey[index] != inputProvider(state)) {
+                    val inputs = sources.map(inputProvider)
+                    return@compute mapper(inputs).also { cache = inputs to it }
+                }
+            }
+            return cacheValue
         }
 
-        override val value: R get() = compute(sources.map { it.value })
+        override val value: R get() = compute { it.value }
 
         override fun buildSnapshotFlow(snapshotFlowBuilder: SnapshotFlowBuilder) {
             sources.forEach { it.buildSnapshotFlow(snapshotFlowBuilder) }
-            snapshotFlowBuilder.addMapper(name) { map -> compute(sources.map { map[it.name] }) }
+            snapshotFlowBuilder.addMapper(key) { map -> compute { map[it.key] } }
         }
     }
 }

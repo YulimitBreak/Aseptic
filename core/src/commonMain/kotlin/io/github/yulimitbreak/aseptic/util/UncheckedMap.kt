@@ -19,5 +19,5 @@ interface UncheckedMap<in Key> {
 @Suppress("UNCHECKED_CAST")
 @JvmInline
 internal value class UncheckedMapWrapper<Key>(private val source: Map<Key, Any?>) : UncheckedMap<Key> {
-    override fun <T> get(key: Key): T = source[key] as T
+    override fun <T> get(key: Key): T = source.getValue(key) as T
 }

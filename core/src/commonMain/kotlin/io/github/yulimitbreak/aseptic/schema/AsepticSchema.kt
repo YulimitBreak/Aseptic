@@ -230,7 +230,7 @@ abstract class AsepticSchema {
      * ```
      */
     @Suppress("MaximumLineLength")
-    protected fun <T, SourceUpdate, Update, TrackableUpdate> TrackingCapableFieldDeclaration<T, Update, TrackableUpdate>.tracking(
+    protected fun <T, SourceUpdate, Update, TrackedUpdate> TrackingCapableFieldDeclaration<T, Update, TrackedUpdate>.tracking(
         source: TrackableFieldDeclaration<*, *, SourceUpdate>,
         updateMapper: (SourceUpdate) -> Update,
     ) = TrackingFieldDeclaration(
@@ -256,7 +256,7 @@ abstract class AsepticSchema {
      * ```
      */
     @Suppress("MaximumLineLength")
-    protected fun <T, SourceUpdate, TrackableUpdate> TrackingCapableFieldDeclaration<T, SourceUpdate, TrackableUpdate>.tracking(
+    protected fun <T, SourceUpdate, TrackedUpdate> TrackingCapableFieldDeclaration<T, SourceUpdate, TrackedUpdate>.tracking(
         source: TrackableFieldDeclaration<*, *, SourceUpdate>
     ) = TrackingFieldDeclaration(
         this,
