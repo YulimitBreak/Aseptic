@@ -1,3 +1,5 @@
 package io.github.yulimitbreak.aseptic.runner
 
-interface OperationHandle
+fun interface OperationHandle {
+    fun cancel()
+}
