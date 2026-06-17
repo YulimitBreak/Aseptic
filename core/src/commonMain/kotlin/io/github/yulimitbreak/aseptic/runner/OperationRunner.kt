@@ -58,8 +58,10 @@ internal class OperationRunner<Handle : BaseAsepticHandle>(
             cleanup = { sendCommand(Command.Cleanup(it)) }
         )
 
+        sendCommand(Command.Dispatch(instance, dispatchPolicy))
+
         return OperationHandle {
-            sendCommand(Command.Dispatch(instance, dispatchPolicy))
+            sendCommand(Command.Cancel(instance))
         }
     }
 

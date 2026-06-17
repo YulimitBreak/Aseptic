@@ -43,9 +43,9 @@ internal class OperationInstance<Handle : BaseAsepticHandle>(
                 throw e
             } catch (e: Throwable) {
                 errorHandler(e)
-            } finally {
-                cleanup(this@OperationInstance)
             }
+        }.apply {
+            invokeOnCompletion { cleanup(this@OperationInstance) }
         }
         job?.start()
     }
