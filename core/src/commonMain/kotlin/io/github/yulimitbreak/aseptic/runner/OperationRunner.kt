@@ -8,6 +8,11 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
+/**
+ * Manages running operations according to their keys and dispatch policies.
+ *
+ * All interactions are serialized using a [Channel]
+ */
 @AsepticInternal
 internal class OperationRunner<Handle : BaseAsepticHandle>(
     private val coroutineScope: CoroutineScope,
@@ -45,6 +50,9 @@ internal class OperationRunner<Handle : BaseAsepticHandle>(
         }
     }
 
+    /**
+     * Dispatch a new [operation] with a specified [key] using a specified [dispatchPolicy]
+     */
     fun dispatch(
         operation: suspend Handle.() -> Unit,
         key: Any,

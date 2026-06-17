@@ -9,6 +9,12 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
+/**
+ * A holder for the [operation], it manages the operation execution, cancellation and cleanup.
+ * Holds a [Job] for the operation
+ *
+ * Not thread-safe, access to it is only done through serialized command handling in [OperationRunner]
+ */
 @AsepticInternal
 internal class OperationInstance<Handle : BaseAsepticHandle>(
     val key: Any,
@@ -21,14 +27,17 @@ internal class OperationInstance<Handle : BaseAsepticHandle>(
     @Volatile
     private var job: Job? = null
 
+    // Using an intermediary scope allows to cancel the operation
+    // regardless of whether or not the operation was started
     private val instanceParentJob = Job(parentScope.coroutineContext[Job]).apply {
         invokeOnCompletion { cause ->
+            // If job == null but cause is cancellation, it means that scope was cancelled before
+            // the operation could start, so this scope is doing the cleanup instead of the operation code
             if (cause is CancellationException && job == null) cleanup(this@OperationInstance)
         }
     }
     private val instanceScope = CoroutineScope(parentScope.coroutineContext + instanceParentJob)
-
-    val isCancelled get() = instanceParentJob.isCancelled
+    val isCancelled get() = instanceParentJob.isCancelled || job?.isCancelled == true
 
     fun cancel() {
         instanceScope.cancel()
