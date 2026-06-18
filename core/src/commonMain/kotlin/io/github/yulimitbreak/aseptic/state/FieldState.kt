@@ -101,7 +101,7 @@ internal abstract class UpdatableFieldState<out T, in Update, out TrackedUpdate>
     }
 
     /**
-     * Attempts to acquire the field mutex without suspending. Returns `false` if already held.'
+     * Attempts to acquire the field mutex without suspending. Returns `false` if already held.
      * Returns `true` if not lockable
      */
     internal fun tryLock(): Boolean {

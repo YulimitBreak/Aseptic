@@ -38,8 +38,8 @@ internal class SnapshotFlowBuilder {
     /**
      * Combines all source flows and uses mappers to calculate all requested values.
      *
-     * [controlGate] allows to stop emitting new values when it's `false`, it allows to do
-     * atomic writes without recalculating a snapshot for every intermediate state
+     * [controlGate] suppresses emissions when `false`, collapsing intermediate states during
+     * atomic writes into a single snapshot emission
      */
     fun build(controlGate: Flow<Boolean> = flowOf(true)): Flow<UncheckedMap<FieldKey>> {
         val mappers = this.mappers.distinctBy { it.key }

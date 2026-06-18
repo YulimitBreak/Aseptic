@@ -38,7 +38,7 @@ internal class ImmutableQueue<T> private constructor(
     }
 
     /**
-     * Return a new [ImmutableQueue] with [value] enqueued
+     * Returns a new [ImmutableQueue] with [value] enqueued
      */
     operator fun plus(value: T): ImmutableQueue<T> = if (outNode != null) {
         ImmutableQueue(
@@ -53,7 +53,7 @@ internal class ImmutableQueue<T> private constructor(
     }
 
     /**
-     * Return a new [ImmutableQueue] with first element dequeued
+     * Returns a new [ImmutableQueue] with the first element dequeued
      */
     fun drop(): ImmutableQueue<T> = when {
         outNode == null -> this

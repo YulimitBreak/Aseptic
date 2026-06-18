@@ -9,7 +9,7 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 
 /**
  * Declaration of a read-only field whose value is computed from one source field.
- * Caches last calculation
+ * Caches the last calculation
  *
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derived
  */
@@ -51,7 +51,7 @@ class Derived1FieldDeclaration<T1, R> internal constructor(
 
 /**
  * Declaration of a read-only field whose value is computed from two source fields.
- * Caches last calculation
+ * Caches the last calculation
  *
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derived
  */
@@ -97,7 +97,7 @@ class Derived2FieldDeclaration<T1, T2, R> internal constructor(
 
 /**
  * Declaration of a read-only field whose value is computed from three source fields.
- * Caches last calculation
+ * Caches the last calculation
  *
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derived
  */
@@ -155,7 +155,7 @@ class Derived3FieldDeclaration<T1, T2, T3, R> internal constructor(
 
 /**
  * Declaration of a read-only field derived from four or more source fields.
- * Caches last calculation
+ * Caches the last calculation
  *
  * @see io.github.yulimitbreak.aseptic.schema.AsepticSchema.derived
  */

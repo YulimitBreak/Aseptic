@@ -44,8 +44,8 @@ abstract class TrackableFieldDeclaration<out T, in Update, out TrackedUpdate> in
 /**
  * A [FieldDeclaration] that can be updated manually.
  * It is also a [TrackableFieldDeclaration], so other fields can track it
- * with [tracking][io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking], but
- * also on top of that this field can receive tracking updates from other trackable fields
+ * with [tracking][io.github.yulimitbreak.aseptic.schema.AsepticSchema.tracking], and
+ * can also receive tracking updates from other trackable fields
  *
  * @param T the type of the field value.
  * @param Update the type of the write message.

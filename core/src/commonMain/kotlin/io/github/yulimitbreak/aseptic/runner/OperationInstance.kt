@@ -10,7 +10,7 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * A holder for the [operation], it manages the operation execution, cancellation and cleanup.
+ * A holder for the [operation] that manages its execution, cancellation and cleanup.
  * Holds a [Job] for the operation
  *
  * Not thread-safe, access to it is only done through serialized command handling in [OperationRunner]

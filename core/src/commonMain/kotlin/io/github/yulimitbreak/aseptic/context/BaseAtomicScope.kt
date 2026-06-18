@@ -9,6 +9,10 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.properties.ReadWriteProperty
 import kotlin.reflect.KProperty
 
+/**
+ * Base class for the receiver used inside [XxxxContext.atomic][BaseAsepticContext.atomic],
+ * providing delegates for accessing and updating data
+ */
 @AsepticInternal
 abstract class BaseAtomicScope protected constructor(
     private val source: UncheckedMap<FieldKey>,
@@ -37,8 +41,17 @@ abstract class BaseAtomicScope protected constructor(
     }
 
     protected inner class ReducedFieldAccessor<T, U>(private val key: FieldKey) {
+        /**
+         * Value that the reduced field had when snapshot was taken.
+         * Does not update inside atomic scope
+         */
         val previous: T = source[key]
 
+        /**
+         * Enqueue an update for the reduced field. Multiple calls enqueue
+         * all the updates, which will be applied at once after atomic
+         * section completes
+         */
         fun enqueue(update: U) {
             this@BaseAtomicScope.updateBuilder.enqueueUpdate(key, update)
         }

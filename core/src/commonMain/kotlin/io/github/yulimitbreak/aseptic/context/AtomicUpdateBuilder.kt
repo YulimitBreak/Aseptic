@@ -5,6 +5,10 @@ import io.github.yulimitbreak.aseptic.state.AtomicUpdate
 import io.github.yulimitbreak.aseptic.state.FieldKey
 import kotlin.collections.mutableListOf
 
+/**
+ * A builder for [AtomicUpdate] inside [BaseAtomicScope]. Updates to mutable fields
+ * overwrite each other, updates to reduced fields are saved and applied as a sequence
+ */
 @AsepticInternal
 class AtomicUpdateBuilder {
 
