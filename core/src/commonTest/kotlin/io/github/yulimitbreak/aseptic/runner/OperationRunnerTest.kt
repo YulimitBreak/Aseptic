@@ -4,6 +4,7 @@ package io.github.yulimitbreak.aseptic.runner
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle
+import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.collections.shouldContainExactly
@@ -20,7 +21,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 class OperationRunnerTest : BehaviorSpec() {
 
-    private class TestHandle : BaseAsepticHandle()
+    private class TestHandle : BaseAsepticHandle(StateContainerBuilder().build())
 
     /**
      * Records lifecycle of named operations and exposes a gate per operation so tests

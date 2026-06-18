@@ -31,8 +31,8 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
      * The update type for a message field.
      * [Enqueue] adds a message to the back of the queue; [Dequeue] removes the front message.
      */
-    sealed interface Update<out T> {
-        data class Enqueue<T>(val message: T) : Update<T>
+    sealed interface Update<out T : Any> {
+        data class Enqueue<T : Any>(val message: T) : Update<T>
         data object Dequeue : Update<Nothing>
     }
 

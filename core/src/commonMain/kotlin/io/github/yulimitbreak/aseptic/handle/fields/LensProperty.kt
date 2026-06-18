@@ -18,6 +18,7 @@ open class LensProperty<Lens> @AsepticInternal constructor(
 
     fun asFlow() = container.snapshotFlow(keys, snapshotGenerator)
 
+    // TODO rework
     protected suspend fun updateAtomic(update: (Lens) -> AtomicUpdate) {
         container.updateAtomic(keys) { update(snapshotGenerator(it)) }
     }

@@ -111,11 +111,13 @@ class StateContainer internal constructor(
         }
     }
 
-    private suspend fun flushAtomicWrite(writes: Map<FieldKey, Any?>) {
+    private suspend fun flushAtomicWrite(writes: AtomicUpdate) {
         consistencyMutex.withLock {
             controlGate.update { false }
-            writes.forEach { (key, value) ->
-                (fields[key] as UpdatableFieldState<*, Any?, *>).update(value)
+            writes.forEach { (key, updateSequence) ->
+                updateSequence.forEach { update ->
+                    (fields[key] as UpdatableFieldState<*, Any?, *>).update(update)
+                }
             }
             controlGate.update { true }
         }

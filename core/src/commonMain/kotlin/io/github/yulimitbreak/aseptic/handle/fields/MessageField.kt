@@ -7,7 +7,7 @@ import io.github.yulimitbreak.aseptic.schema.fields.MessageFieldDeclaration
 import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.StateContainer
 
-class MessageField<T> @AsepticInternal constructor(
+class MessageField<T : Any> @AsepticInternal constructor(
     internal val key: FieldKey,
     private val container: StateContainer,
 ) {
