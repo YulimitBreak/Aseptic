@@ -40,7 +40,7 @@ abstract class BaseAtomicScope protected constructor(
         }
     }
 
-    protected inner class ReducedFieldAccessor<T, U>(private val key: FieldKey) {
+    inner class ReducedFieldAccessor<T, U>(private val key: FieldKey) {
         /**
          * Value that the reduced field had when snapshot was taken.
          * Does not update inside atomic scope
