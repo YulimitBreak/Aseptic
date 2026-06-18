@@ -1,13 +1,12 @@
-package io.github.yulimitbreak.aseptic.handle
+package io.github.yulimitbreak.aseptic.context
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
-import io.github.yulimitbreak.aseptic.handle.fields.FieldLockProperty
 import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.StateContainer
 import io.github.yulimitbreak.aseptic.util.UncheckedMap
 
 @AsepticInternal
-abstract class BaseAsepticHandle<Snapshot, AtomicScope : BaseAtomicScope> protected constructor(
+abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> protected constructor(
     private val container: StateContainer,
     private val snapshotGenerator: (UncheckedMap<FieldKey>) -> Snapshot,
     private val atomicScopeGenerator: (UncheckedMap<FieldKey>) -> AtomicScope,

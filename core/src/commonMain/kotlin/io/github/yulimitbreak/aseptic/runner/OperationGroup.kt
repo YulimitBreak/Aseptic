@@ -3,28 +3,28 @@
 package io.github.yulimitbreak.aseptic.runner
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
-import io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle
+import io.github.yulimitbreak.aseptic.context.BaseAsepticContext
 
 /**
  * A container for all operations (running and queued) with the same key
  */
-internal class OperationGroup<Handle : BaseAsepticHandle<*, *>>(
-    private val handle: Handle,
+internal class OperationGroup<Context : BaseAsepticContext<*, *>>(
+    private val context: Context,
 ) {
 
-    private val running = mutableSetOf<OperationInstance<Handle>>()
+    private val running = mutableSetOf<OperationInstance<Context>>()
 
-    private val queued = ArrayDeque<OperationInstance<Handle>>()
+    private val queued = ArrayDeque<OperationInstance<Context>>()
 
     /**
      * Dispatch operation with the specified [DispatchPolicy]
      *
      * @see DispatchPolicy
      */
-    fun dispatch(operation: OperationInstance<Handle>, dispatchPolicy: DispatchPolicy) {
+    fun dispatch(operation: OperationInstance<Context>, dispatchPolicy: DispatchPolicy) {
         fun runNormally() {
             running.add(operation)
-            operation.run(handle)
+            operation.run(context)
         }
 
         when (dispatchPolicy) {
@@ -58,7 +58,7 @@ internal class OperationGroup<Handle : BaseAsepticHandle<*, *>>(
      * Returns `true` if both running and queue are empty, and
      * the group can be safely removed
      */
-    fun remove(operation: OperationInstance<Handle>): Boolean {
+    fun remove(operation: OperationInstance<Context>): Boolean {
         running.remove(operation)
         queued.remove(operation)
         if (running.isEmpty()) {
@@ -70,7 +70,7 @@ internal class OperationGroup<Handle : BaseAsepticHandle<*, *>>(
                 return false
             }
             running.add(next)
-            next.run(handle)
+            next.run(context)
         }
         return false
     }

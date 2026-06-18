@@ -19,7 +19,7 @@ import io.github.yulimitbreak.aseptic.schema.properties.LensPropertyDeclaration
  *
  * A schema declares the fields that make up a piece of state. Each field is a property
  * created via one of the protected factory methods below. The Aseptic KSP processor reads
- * the schema at compile time and generates a state handle (for operations to write state)
+ * the schema at compile time and generates an operation context (for operations to read and write state)
  * and a UI model class (for the UI to observe it).
  *
  * Schema instances are created once by the generated code to build the runtime state container,
@@ -57,7 +57,7 @@ abstract class AsepticSchema {
     /**
      * Declares a mutable field with [initial] as its starting value.
      *
-     * The generated state handle exposes a typed setter for this field.
+     * The generated operation context exposes a typed setter for this field.
      *
      * ```kotlin
      * @Model
@@ -155,7 +155,7 @@ abstract class AsepticSchema {
     /**
      * Declares a field updated by folding incoming update messages into its current value.
      *
-     * The generated state handle exposes the `update` method that takes an update of type [U], and uses
+     * The generated operation context exposes the `update` method that takes an update of type [U], and uses
      * [update] to apply it to a current state (starting with [initial]) to produce a new value
      *
      * ```kotlin
@@ -215,7 +215,7 @@ abstract class AsepticSchema {
 
     /**
      * Declares a special lens property, that generates a special data class (named the same as the
-     * schema member name, unless [className] is specified) and a handle for it in XxxxHandle class,
+     * schema member name, unless [className] is specified) and an accessor for it in XxxxContext class,
      * that returns an instance populated with consistent current data.
      *
      * If any fields are [mutable], also creates a method to update the mutable fields atomically

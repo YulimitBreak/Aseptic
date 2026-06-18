@@ -33,13 +33,13 @@ annotation class Aseptic(
 )
 
 /**
- * Exposes a schema field or member to the generated state handle, making it accessible inside operations.
+ * Exposes a schema field or member to the generated state context, making it accessible inside operations.
  *
  * Applied to properties declared in an [io.github.yulimitbreak.aseptic.schema.AsepticSchema].
  * For mutable fields this generates a setter; for read-only fields it generates a getter.
  * Can be combined with [@Ui][Ui] to expose the same field to both operations and the UI.
  *
- * @param named overrides the property name in the generated state handle. If empty, the schema
+ * @param named overrides the property name in the generated state context. If empty, the schema
  * property name is used.
  */
 annotation class Model(
@@ -61,11 +61,11 @@ annotation class Ui(
 )
 
 /**
- * Marks a function in the generated state handle as an Aseptic operation.
+ * Marks a function in the generated state context as an Aseptic operation.
  *
  * Operations are fire-and-forget `suspend` extension functions on the generated handle class
- * (a subclass of [BaseAsepticHandle][io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle]). Inside an operation,
- * `this` is the handle - giving access to all `@Model`-annotated fields for reading and writing,
+ * (a subclass of [BaseAsepticContext][io.github.yulimitbreak.aseptic.context.BaseAsepticContext]). Inside an operation,
+ * `this` is the context - giving access to all `@Model`-annotated fields for reading and writing,
  * as well as `snapshot {}` and `atomic {}` scopes for consistent multi-field reads and writes.
  *
  * Each operation is dispatched through an [OperationRunner][io.github.yulimitbreak.aseptic.runner.OperationRunner]
@@ -76,7 +76,7 @@ annotation class Ui(
  * ```kotlin
  *
  * @Operation(named = "loadNews", dispatchPolicy = DispatchPolicy.CANCEL)
- * fun NewsHandle.loadNewsArticles(categoryId: String, loadArticlesUseCase: suspend (String) -> List<Article>) {
+ * fun NewsContext.loadNewsArticles(categoryId: String, loadArticlesUseCase: suspend (String) -> List<Article>) {
  *      loading.update { true }
  *      try {
  *          val loaded = loadArticlesUseCase(categoryId)
@@ -99,7 +99,7 @@ annotation class Ui(
  * ```
  *
  *
- * @param named overrides the function name in the generated state handle. If empty, the annotated
+ * @param named overrides the function name in the generated state context. If empty, the annotated
  * function name is used.
  * @param dispatchPolicy controls how this operation behaves when another instance of the same
  * operation is already running. Defaults to [DispatchPolicy.CONCURRENT].

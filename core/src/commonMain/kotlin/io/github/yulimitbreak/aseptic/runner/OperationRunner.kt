@@ -1,7 +1,7 @@
 package io.github.yulimitbreak.aseptic.runner
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
-import io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle
+import io.github.yulimitbreak.aseptic.context.BaseAsepticContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -14,9 +14,9 @@ import kotlinx.coroutines.launch
  * All interactions are serialized using a [Channel]
  */
 @AsepticInternal
-internal class OperationRunner<Handle : BaseAsepticHandle<*, *>>(
+internal class OperationRunner<Context : BaseAsepticContext<*, *>>(
     private val coroutineScope: CoroutineScope,
-    handle: Handle,
+    context: Context,
 ) {
 
     private val operationScope = CoroutineScope(
@@ -27,22 +27,22 @@ internal class OperationRunner<Handle : BaseAsepticHandle<*, *>>(
         // TODO when logging implemented
     }
 
-    private val groups = mutableMapOf<Any, OperationGroup<Handle>>()
+    private val groups = mutableMapOf<Any, OperationGroup<Context>>()
 
-    private val commandChannel = Channel<Command<Handle>>(capacity = Channel.UNLIMITED).also { channel ->
+    private val commandChannel = Channel<Command<Context>>(capacity = Channel.UNLIMITED).also { channel ->
         coroutineScope.launch {
             for (command in channel) {
                 when (command) {
                     is Command.Cancel -> command.operation.cancel()
                     is Command.Cleanup -> command.operation.let {
                         val isEmpty = groups[it.key]?.remove(it)
-                        if (isEmpty == true && it.key !is StandardOpKey) {
+                        if (isEmpty == true && it.key !is StandardOperationKey) {
                             groups.remove(it.key)
                         }
                     }
                     is Command.Dispatch -> command.operation.let {
                         groups
-                            .getOrPut(it.key) { OperationGroup(handle) }
+                            .getOrPut(it.key) { OperationGroup(context) }
                             .dispatch(it, command.policy)
                     }
                 }
@@ -54,7 +54,7 @@ internal class OperationRunner<Handle : BaseAsepticHandle<*, *>>(
      * Dispatch a new [operation] with a specified [key] using a specified [dispatchPolicy]
      */
     fun dispatch(
-        operation: suspend Handle.() -> Unit,
+        operation: suspend Context.() -> Unit,
         key: Any,
         dispatchPolicy: DispatchPolicy,
     ): OperationHandle {
@@ -74,20 +74,20 @@ internal class OperationRunner<Handle : BaseAsepticHandle<*, *>>(
     }
 
     private fun sendCommand(
-        command: Command<Handle>
+        command: Command<Context>
     ) {
         commandChannel.trySend(command)
     }
 
-    private sealed interface Command<out Handle : BaseAsepticHandle<*, *>> {
+    private sealed interface Command<out Context : BaseAsepticContext<*, *>> {
 
-        class Dispatch<Handle : BaseAsepticHandle<*, *>>(
-            val operation: OperationInstance<Handle>,
+        class Dispatch<Context : BaseAsepticContext<*, *>>(
+            val operation: OperationInstance<Context>,
             val policy: DispatchPolicy
-        ) : Command<Handle>
+        ) : Command<Context>
 
         class Cancel(val operation: OperationInstance<*>) : Command<Nothing>
 
-        class Cleanup<Handle : BaseAsepticHandle<*, *>>(val operation: OperationInstance<Handle>) : Command<Handle>
+        class Cleanup<Context : BaseAsepticContext<*, *>>(val operation: OperationInstance<Context>) : Command<Context>
     }
 }

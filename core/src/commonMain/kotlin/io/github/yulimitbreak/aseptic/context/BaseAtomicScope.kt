@@ -1,6 +1,6 @@
 @file:OptIn(AsepticInternal::class)
 
-package io.github.yulimitbreak.aseptic.handle
+package io.github.yulimitbreak.aseptic.context
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.state.FieldKey
@@ -36,7 +36,7 @@ abstract class BaseAtomicScope protected constructor(
         }
     }
 
-    protected inner class ReducedFieldHandle<T, U>(private val key: FieldKey) {
+    protected inner class ReducedFieldAccessor<T, U>(private val key: FieldKey) {
         val previous: T = source[key]
 
         fun enqueue(update: U) {

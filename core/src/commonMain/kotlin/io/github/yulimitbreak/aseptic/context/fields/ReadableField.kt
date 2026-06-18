@@ -1,8 +1,9 @@
 @file:OptIn(AsepticInternal::class)
 
-package io.github.yulimitbreak.aseptic.handle.fields
+package io.github.yulimitbreak.aseptic.context.fields
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
+import io.github.yulimitbreak.aseptic.context.FieldLockProperty
 import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.StateContainer
 

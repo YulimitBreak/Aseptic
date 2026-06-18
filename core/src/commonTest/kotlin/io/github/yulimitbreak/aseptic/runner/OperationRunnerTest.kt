@@ -3,7 +3,7 @@
 package io.github.yulimitbreak.aseptic.runner
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
-import io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle
+import io.github.yulimitbreak.aseptic.context.BaseAsepticContext
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.core.test.testCoroutineScheduler
@@ -21,7 +21,7 @@ import kotlin.coroutines.cancellation.CancellationException
 
 class OperationRunnerTest : BehaviorSpec() {
 
-    private class TestHandle : BaseAsepticHandle<Nothing, Nothing>(
+    private class TestContext : BaseAsepticContext<Nothing, Nothing>(
         StateContainerBuilder().build(),
         snapshotGenerator = { error("unused") },
         atomicScopeGenerator = { error("unused") },
@@ -37,7 +37,7 @@ class OperationRunnerTest : BehaviorSpec() {
         val cancelled = mutableListOf<String>()
         private val gates = mutableMapOf<String, CompletableDeferred<Unit>>()
 
-        fun op(name: String): suspend TestHandle.() -> Unit {
+        fun op(name: String): suspend TestContext.() -> Unit {
             val gate = CompletableDeferred<Unit>()
             gates[name] = gate
             return {
@@ -66,7 +66,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("both run concurrently and complete") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -90,7 +90,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("it waits for the running operation to finish") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -116,7 +116,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("it is dropped and never runs") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -139,7 +139,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("the running operation is cancelled and the second runs") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -163,7 +163,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("the operation is cancelled") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         val handle = runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -186,14 +186,14 @@ class OperationRunnerTest : BehaviorSpec() {
                         Exhaustive.enum<DispatchPolicy>()
                     ) { firstPolicy, secondPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), StandardOpKey("x"), firstPolicy)
+                        runner.dispatch(tracker.op("a"), StandardOperationKey("x"), firstPolicy)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
-                        runner.dispatch(tracker.op("b"), StandardOpKey("y"), secondPolicy)
+                        runner.dispatch(tracker.op("b"), StandardOperationKey("y"), secondPolicy)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactlyInAnyOrder listOf("a", "b")
 
@@ -216,7 +216,7 @@ class OperationRunnerTest : BehaviorSpec() {
                     ) { firstPolicy, secondPolicy ->
                         val immediate = run {
                             val scope = CoroutineScope(coroutineContext + Job())
-                            val runner = OperationRunner(scope, TestHandle())
+                            val runner = OperationRunner(scope, TestContext())
                             val tracker = Tracker()
                             runner.dispatch(tracker.op("a"), key, firstPolicy)
                             runner.dispatch(tracker.op("b"), key, secondPolicy)
@@ -229,7 +229,7 @@ class OperationRunnerTest : BehaviorSpec() {
                         }
                         val delayed = run {
                             val scope = CoroutineScope(coroutineContext + Job())
-                            val runner = OperationRunner(scope, TestHandle())
+                            val runner = OperationRunner(scope, TestContext())
                             val tracker = Tracker()
                             runner.dispatch(tracker.op("a"), key, firstPolicy)
                             testCoroutineScheduler.advanceUntilIdle()
@@ -252,7 +252,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("the next queued operation runs, in dispatch order") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -281,7 +281,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("the cancelled operation is skipped and the rest run in order") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -310,7 +310,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("it never runs and the running operation still completes") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -334,7 +334,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("it is cancelled and the queued operation runs") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         val running = runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -359,7 +359,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("the error handler receives the exception and the queue proceeds") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
                         val errors = mutableListOf<Throwable>()
                         runner.errorHandler = { errors += it }
@@ -383,7 +383,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("it runs immediately alongside the running one, leaving the queue intact") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -409,7 +409,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("it is appended behind the existing queued operation") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -440,7 +440,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("it is dropped while the running and queued operations are untouched") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -467,7 +467,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("both the running and queued operations are cancelled and the third runs") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -494,7 +494,7 @@ class OperationRunnerTest : BehaviorSpec() {
                 Then("only that operation is cancelled and the other runs to completion") {
                     checkAll(Exhaustive.enum<DispatchPolicy>()) { firstPolicy ->
                         val scope = CoroutineScope(coroutineContext + Job())
-                        val runner = OperationRunner(scope, TestHandle())
+                        val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
                         val first = runner.dispatch(tracker.op("a"), key, firstPolicy)
@@ -517,6 +517,6 @@ class OperationRunnerTest : BehaviorSpec() {
     }
 
     private companion object {
-        val key = StandardOpKey("op")
+        val key = StandardOperationKey("op")
     }
 }
