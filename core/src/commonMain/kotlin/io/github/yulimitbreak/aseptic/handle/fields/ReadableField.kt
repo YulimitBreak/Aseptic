@@ -9,7 +9,9 @@ import io.github.yulimitbreak.aseptic.state.StateContainer
 open class ReadableField<T> @AsepticInternal constructor(
     internal val key: FieldKey,
     protected val container: StateContainer
-) {
+) : FieldLockProperty {
+
+    override val keys: Set<FieldKey> = setOf(key)
 
     operator fun invoke(): T = container[key]
 

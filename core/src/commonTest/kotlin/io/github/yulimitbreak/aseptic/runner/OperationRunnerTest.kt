@@ -21,7 +21,11 @@ import kotlin.coroutines.cancellation.CancellationException
 
 class OperationRunnerTest : BehaviorSpec() {
 
-    private class TestHandle : BaseAsepticHandle(StateContainerBuilder().build())
+    private class TestHandle : BaseAsepticHandle<Nothing, Nothing>(
+        StateContainerBuilder().build(),
+        snapshotGenerator = { error("unused") },
+        atomicScopeGenerator = { error("unused") },
+    )
 
     /**
      * Records lifecycle of named operations and exposes a gate per operation so tests

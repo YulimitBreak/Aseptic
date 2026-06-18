@@ -16,7 +16,7 @@ import kotlin.coroutines.cancellation.CancellationException
  * Not thread-safe, access to it is only done through serialized command handling in [OperationRunner]
  */
 @AsepticInternal
-internal class OperationInstance<Handle : BaseAsepticHandle>(
+internal class OperationInstance<Handle : BaseAsepticHandle<*, *>>(
     val key: Any,
     private val operation: suspend Handle.() -> Unit,
     parentScope: CoroutineScope,

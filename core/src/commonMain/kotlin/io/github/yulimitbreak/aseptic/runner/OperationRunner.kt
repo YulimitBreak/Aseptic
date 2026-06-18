@@ -14,7 +14,7 @@ import kotlinx.coroutines.launch
  * All interactions are serialized using a [Channel]
  */
 @AsepticInternal
-internal class OperationRunner<Handle : BaseAsepticHandle>(
+internal class OperationRunner<Handle : BaseAsepticHandle<*, *>>(
     private val coroutineScope: CoroutineScope,
     handle: Handle,
 ) {
@@ -79,15 +79,15 @@ internal class OperationRunner<Handle : BaseAsepticHandle>(
         commandChannel.trySend(command)
     }
 
-    private sealed interface Command<out Handle : BaseAsepticHandle> {
+    private sealed interface Command<out Handle : BaseAsepticHandle<*, *>> {
 
-        class Dispatch<Handle : BaseAsepticHandle>(
+        class Dispatch<Handle : BaseAsepticHandle<*, *>>(
             val operation: OperationInstance<Handle>,
             val policy: DispatchPolicy
         ) : Command<Handle>
 
         class Cancel(val operation: OperationInstance<*>) : Command<Nothing>
 
-        class Cleanup<Handle : BaseAsepticHandle>(val operation: OperationInstance<Handle>) : Command<Handle>
+        class Cleanup<Handle : BaseAsepticHandle<*, *>>(val operation: OperationInstance<Handle>) : Command<Handle>
     }
 }

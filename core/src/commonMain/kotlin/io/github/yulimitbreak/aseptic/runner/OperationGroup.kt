@@ -8,7 +8,7 @@ import io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle
 /**
  * A container for all operations (running and queued) with the same key
  */
-internal class OperationGroup<Handle : BaseAsepticHandle>(
+internal class OperationGroup<Handle : BaseAsepticHandle<*, *>>(
     private val handle: Handle,
 ) {
 

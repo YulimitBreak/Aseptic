@@ -44,12 +44,6 @@ abstract class BaseAtomicScope protected constructor(
         }
     }
 
-    protected inner class MessageFieldHandle<T : Any>(private val key: FieldKey) {
-        fun enqueue(message: T) {
-            this@BaseAtomicScope.updateBuilder.enqueueMessage(key, message)
-        }
-    }
-
     protected fun <LensScope : BaseAtomicScope> lensProperty(
         generator: (UncheckedMap<FieldKey>, AtomicUpdateBuilder) -> LensScope
     ) = generator(this.source, this.updateBuilder)

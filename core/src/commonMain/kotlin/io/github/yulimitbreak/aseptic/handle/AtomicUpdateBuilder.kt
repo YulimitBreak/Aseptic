@@ -1,7 +1,6 @@
 package io.github.yulimitbreak.aseptic.handle
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
-import io.github.yulimitbreak.aseptic.schema.fields.MessageFieldDeclaration
 import io.github.yulimitbreak.aseptic.state.AtomicUpdate
 import io.github.yulimitbreak.aseptic.state.FieldKey
 import kotlin.collections.mutableListOf
@@ -25,10 +24,6 @@ class AtomicUpdateBuilder {
 
     internal fun <U> enqueueUpdate(key: FieldKey, update: U) {
         updates.getOrPut(key, { mutableListOf() }).add(update)
-    }
-
-    internal fun <T : Any> enqueueMessage(key: FieldKey, message: T) {
-        enqueueUpdate(key, MessageFieldDeclaration.Update.Enqueue(message))
     }
 
     fun build(): AtomicUpdate = mutableValues.mapValues { (_, v) -> listOf(v.mapper) } + updates
