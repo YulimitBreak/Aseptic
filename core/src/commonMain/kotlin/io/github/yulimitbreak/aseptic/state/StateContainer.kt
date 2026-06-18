@@ -80,12 +80,15 @@ class StateContainer internal constructor(
     }
 
     /**
-     * Runs [update] without holding any locks, then obtains locks for changed fields
-     * and writes them atomically, ensuring that [generateSnapshot] does not return
-     * inconsistent values with only a partial write
+     * First gets a full consistent snapshot of the state using [generateSnapshot], then
+     * runs [update] on that snapshot without holding any locks,
+     * then obtains locks for changed fields and writes them atomically,
+     * ensuring that [generateSnapshot] does not return inconsistent values with only a partial write.
+     *
+     * Values returned by [update] overwrite current state, even if actual values have changed since then
      */
     suspend fun updateAtomic(update: (UncheckedMap<FieldKey>) -> AtomicUpdate) {
-        val writes = update(this)
+        val writes = update(generateSnapshot { it })
         if (writes.isNotEmpty()) {
             writes.keys.withLock { flushAtomicWrite(writes) }
         }
@@ -95,7 +98,8 @@ class StateContainer internal constructor(
      * Locks fields specified in [lockRequest], runs [update] and then writes changed fields
      * atomically, ensuring that [generateSnapshot] and all flows do not return inconsistent values with
      * only a partial write, and that fields from [lockRequest] haven't been changed for
-     * the duration of [update] call
+     * the duration of [update] call. [UncheckedMap] passed to [update] is guaranteed to be consistent on
+     * [lockRequest] fields but no other guarantees given
      *
      * Changed fields have to be a subset of [lockRequest] (no way to ensure proper locking order otherwise)
      */

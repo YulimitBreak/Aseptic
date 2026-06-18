@@ -3,6 +3,7 @@
 package io.github.yulimitbreak.aseptic.handle.fields
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
+import io.github.yulimitbreak.aseptic.handle.BaseAtomicScope
 import io.github.yulimitbreak.aseptic.state.AtomicUpdate
 import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.StateContainer
@@ -18,8 +19,20 @@ open class LensProperty<Lens> @AsepticInternal constructor(
 
     fun asFlow() = container.snapshotFlow(keys, snapshotGenerator)
 
-    // TODO rework
-    protected suspend fun updateAtomic(update: (Lens) -> AtomicUpdate) {
-        container.updateAtomic(keys) { update(snapshotGenerator(it)) }
+}
+
+open class MutableLensProperty<Lens, LensScope : BaseAtomicScope> @AsepticInternal constructor(
+    keys: Set<FieldKey>,
+    container: StateContainer,
+    snapshotGenerator: (UncheckedMap<FieldKey>) -> Lens,
+    private val scopeGenerator: (UncheckedMap<FieldKey>) -> LensScope
+): LensProperty<Lens>(keys, container, snapshotGenerator) {
+
+
+    protected suspend fun updateAtomic(update: LensScope.() -> Unit) {
+        container.updateAtomic(keys) { source ->
+            scopeGenerator(source).apply(update).updateBuilder.build()
+        }
     }
+
 }
