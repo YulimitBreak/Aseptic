@@ -12,4 +12,4 @@ import io.github.yulimitbreak.aseptic.AsepticInternal
  * once they get empty
  */
 @AsepticInternal
-data class StandardOpKey(val operationName: String)
+data class StandardOperationKey(val operationName: String)

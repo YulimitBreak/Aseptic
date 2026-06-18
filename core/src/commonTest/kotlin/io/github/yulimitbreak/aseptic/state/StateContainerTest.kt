@@ -128,8 +128,8 @@ class StateContainerTest : BehaviorSpec() {
             }
         }
 
-        // ReducedFieldDeclaration is used so update values are plain Ints rather than lambdas,
-        // which keeps the atomic-write maps readable.
+        // ReducedFieldDeclaration is used so update values are plain Ints (wrapped in listOf())
+        // rather than transform lambdas, which keeps the atomic-write maps readable.
         Given("a container with two reduced Int fields") {
             val aDecl = ReducedFieldDeclaration(5) { _, update: Int -> update }
             val bDecl = ReducedFieldDeclaration(10) { _, update: Int -> update }
@@ -143,7 +143,7 @@ class StateContainerTest : BehaviorSpec() {
                 Then("both fields reflect the new values") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val container = container()
-                    container.updateAtomic { mapOf("a" to 100, "b" to 200) }
+                    container.updateAtomic { mapOf("a" to listOf(100), "b" to listOf(200)) }
                     assertSoftly {
                         container.get<Int>("a") shouldBe 100
                         container.get<Int>("b") shouldBe 200
@@ -169,7 +169,7 @@ class StateContainerTest : BehaviorSpec() {
                 Then("both fields reflect the new values") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val container = container()
-                    container.updateAtomic(setOf("a", "b")) { mapOf("a" to 100, "b" to 200) }
+                    container.updateAtomic(setOf("a", "b")) { mapOf("a" to listOf(100), "b" to listOf(200)) }
                     assertSoftly {
                         container.get<Int>("a") shouldBe 100
                         container.get<Int>("b") shouldBe 200
@@ -183,7 +183,7 @@ class StateContainerTest : BehaviorSpec() {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val container = container()
                     shouldThrow<IllegalStateException> {
-                        container.updateAtomic(setOf("a")) { mapOf("a" to 10, "b" to 20) }
+                        container.updateAtomic(setOf("a")) { mapOf("a" to listOf(10), "b" to listOf(20)) }
                     }
                     scope.cancel()
                 }
@@ -193,7 +193,7 @@ class StateContainerTest : BehaviorSpec() {
                 Then("the written field updates and the other stays unchanged") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val container = container()
-                    container.updateAtomic(setOf("a", "b")) { mapOf("a" to 55) }
+                    container.updateAtomic(setOf("a", "b")) { mapOf("a" to listOf(55)) }
                     assertSoftly {
                         container.get<Int>("a") shouldBe 55
                         container.get<Int>("b") shouldBe 10
@@ -206,8 +206,8 @@ class StateContainerTest : BehaviorSpec() {
                 Then("both complete and commit consistently") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val container = container()
-                    launch { container.updateAtomic(setOf("a", "b")) { mapOf("a" to 1, "b" to 1) } }
-                    launch { container.updateAtomic(setOf("a", "b")) { mapOf("a" to 2, "b" to 2) } }
+                    launch { container.updateAtomic(setOf("a", "b")) { mapOf("a" to listOf(1), "b" to listOf(1)) } }
+                    launch { container.updateAtomic(setOf("a", "b")) { mapOf("a" to listOf(2), "b" to listOf(2)) } }
                     testCoroutineScheduler.advanceUntilIdle()
                     val a = container.get<Int>("a")
                     val b = container.get<Int>("b")
@@ -261,7 +261,7 @@ class StateContainerTest : BehaviorSpec() {
                 Then("the snapshot reflects the updated values") {
                     val scope = CoroutineScope(coroutineContext + Job())
                     val container = container()
-                    container.updateAtomic { mapOf("a" to 99, "b" to 77) }
+                    container.updateAtomic { mapOf("a" to listOf(99), "b" to listOf(77)) }
                     val snapshot = container.generateSnapshot { map ->
                         map.get<Int>("a") to map.get<Int>("b")
                     }
@@ -287,7 +287,7 @@ class StateContainerTest : BehaviorSpec() {
                         addField("b", false, bDecl)
                         addField("derived", false, derivedDecl)
                     }
-                    container.updateAtomic { mapOf("a" to 3, "b" to 7) }
+                    container.updateAtomic { mapOf("a" to listOf(3), "b" to listOf(7)) }
                     val snapshot = container.generateSnapshot(setOf("derived")) { map ->
                         map.get<Int>("derived")
                     }

@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.update
  * Operations enqueue messages under a mutex; the UI dequeues and consumes them.
  * This ensures no message is lost even if the UI is not currently collecting.
  *
- * It is a [FieldDeclaration] rather than a [UpdatableFieldDeclaration] by design: message fields
+ * It is a [FieldDeclaration] rather than an [UpdatableFieldDeclaration] by design: message fields
  * cannot participate in the field hierarchy in any way.
  *
  * @param T the type of the message. Must be non-null.
@@ -31,8 +31,8 @@ class MessageFieldDeclaration<T : Any> internal constructor() : FieldDeclaration
      * The update type for a message field.
      * [Enqueue] adds a message to the back of the queue; [Dequeue] removes the front message.
      */
-    sealed interface Update<out T> {
-        data class Enqueue<T>(val message: T) : Update<T>
+    sealed interface Update<out T : Any> {
+        data class Enqueue<T : Any>(val message: T) : Update<T>
         data object Dequeue : Update<Nothing>
     }
 

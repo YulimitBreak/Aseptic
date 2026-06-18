@@ -1,7 +1,7 @@
 package io.github.yulimitbreak.aseptic.runner
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
-import io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle
+import io.github.yulimitbreak.aseptic.context.BaseAsepticContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Job
@@ -10,18 +10,18 @@ import kotlinx.coroutines.launch
 import kotlin.coroutines.cancellation.CancellationException
 
 /**
- * A holder for the [operation], it manages the operation execution, cancellation and cleanup.
+ * A holder for the [operation] that manages its execution, cancellation and cleanup.
  * Holds a [Job] for the operation
  *
  * Not thread-safe, access to it is only done through serialized command handling in [OperationRunner]
  */
 @AsepticInternal
-internal class OperationInstance<Handle : BaseAsepticHandle>(
+internal class OperationInstance<Context : BaseAsepticContext<*, *>>(
     val key: Any,
-    private val operation: suspend Handle.() -> Unit,
+    private val operation: suspend Context.() -> Unit,
     parentScope: CoroutineScope,
     private val errorHandler: (Throwable) -> Unit,
-    private val cleanup: (OperationInstance<Handle>) -> Unit
+    private val cleanup: (OperationInstance<Context>) -> Unit
 ) {
 
     @Volatile
@@ -44,10 +44,10 @@ internal class OperationInstance<Handle : BaseAsepticHandle>(
     }
 
     @Suppress("TooGenericExceptionCaught")
-    fun run(handle: Handle) {
+    fun run(context: Context) {
         job = instanceScope.launch(start = CoroutineStart.LAZY) {
             try {
-                handle.operation()
+                context.operation()
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {

@@ -3,11 +3,8 @@ package io.github.yulimitbreak.aseptic
 import io.github.yulimitbreak.aseptic.runner.DispatchPolicy
 
 /**
- * Marks an [io.github.yulimitbreak.aseptic.schema.AsepticSchema] subclass for processing by the Aseptic KSP processor.
- *
- * The processor generates a state manager class and a UI model class based on the annotated schema.
- * By default, the generated class names are derived from the schema class name; [baseName] overrides
- * the common prefix used for all generated classes.
+ * Marks an [AsepticSchema][io.github.yulimitbreak.aseptic.schema.AsepticSchema] subclass for processing by the
+ * Aseptic KSP processor.
  *
  * ```kotlin
  *
@@ -27,19 +24,28 @@ import io.github.yulimitbreak.aseptic.runner.DispatchPolicy
  *      // ...
  * }
  * ```
+ *
+ * @param baseName overrides the common prefix used for all generated classes - by default,
+ * the generated class names are derived from the schema class name
+ * @param contextClassSuffix determines the suffix for the name of a generated context class
+ * that is used as a receiver of Operations - default value is "Context"
+ * @param stateClassSuffix overrides suffix name for a generated state manager class that is used as an entry
+ * point for the execution of Operations - default value is "State"
  */
 annotation class Aseptic(
     val baseName: String = "",
+    val contextClassSuffix: String = "Context",
+    val stateClassSuffix: String = "State",
 )
 
 /**
- * Exposes a schema field or member to the generated state handle, making it accessible inside operations.
+ * Exposes a schema field or member to the generated state context, making it accessible inside operations.
  *
  * Applied to properties declared in an [io.github.yulimitbreak.aseptic.schema.AsepticSchema].
  * For mutable fields this generates a setter; for read-only fields it generates a getter.
  * Can be combined with [@Ui][Ui] to expose the same field to both operations and the UI.
  *
- * @param named overrides the property name in the generated state handle. If empty, the schema
+ * @param named overrides the property name in the generated state context. If empty, the schema
  * property name is used.
  */
 annotation class Model(
@@ -61,12 +67,12 @@ annotation class Ui(
 )
 
 /**
- * Marks a function in the generated state handle as an Aseptic operation.
+ * Marks a function in the generated state context as an Aseptic operation.
  *
  * Operations are fire-and-forget `suspend` extension functions on the generated handle class
- * (a subclass of [BaseAsepticHandle][io.github.yulimitbreak.aseptic.handle.BaseAsepticHandle]). Inside an operation,
- * `this` is the handle - giving access to all `@Model`-annotated fields for reading and writing,
- * as well as `snapshot {}` and `atomic {}` scopes for consistent multi-field reads and writes.
+ * (a subclass of [BaseAsepticContext][io.github.yulimitbreak.aseptic.context.BaseAsepticContext]). Inside an operation,
+ * `this` is the context - giving access to all `@Model`-annotated fields for reading and writing,
+ * as well as `snapshot()` and `atomic {}` for consistent multi-field reads and writes.
  *
  * Each operation is dispatched through an [OperationRunner][io.github.yulimitbreak.aseptic.runner.OperationRunner]
  * which enforces the chosen [dispatchPolicy] relative to other running instances of the same operation.
@@ -76,8 +82,8 @@ annotation class Ui(
  * ```kotlin
  *
  * @Operation(named = "loadNews", dispatchPolicy = DispatchPolicy.CANCEL)
- * fun NewsHandle.loadNewsArticles(categoryId: String, loadArticlesUseCase: suspend (String) -> List<Article>) {
- *      loading.update { true }
+ * suspend fun NewsContext.loadNewsArticles(categoryId: String, loadArticlesUseCase: suspend (String) -> List<Article>) {
+ *      loading.set(true)
  *      try {
  *          val loaded = loadArticlesUseCase(categoryId)
  *          atomic(articles, categoryStatus) {
@@ -85,21 +91,20 @@ annotation class Ui(
  *              categoryStatus = CategoryStatus.READ
  *          }
  *      } catch (e: IOException) {
- *          errors.emit { NewsErrorEvents.NetworkError }
+ *          errors.emit(NewsErrorEvents.NetworkError)
  *      } finally {
- *          loading.update { false }
+ *          loading.set(false)
  *      }
  * }
- * // ...
- *
+ * ```
+ * ```kotlin
  * fun showCategory(category: Category) {
  *      newsState.loadNews(category.id, loadArticlesUseCase, dispatchPolicy = DispatchPolicy.DROP)
  * }
  *
  * ```
  *
- *
- * @param named overrides the function name in the generated state handle. If empty, the annotated
+ * @param named overrides the function name in the generated state context. If empty, the annotated
  * function name is used.
  * @param dispatchPolicy controls how this operation behaves when another instance of the same
  * operation is already running. Defaults to [DispatchPolicy.CONCURRENT].

@@ -19,7 +19,7 @@ import io.github.yulimitbreak.aseptic.schema.properties.LensPropertyDeclaration
  *
  * A schema declares the fields that make up a piece of state. Each field is a property
  * created via one of the protected factory methods below. The Aseptic KSP processor reads
- * the schema at compile time and generates a state handle (for operations to write state)
+ * the schema at compile time and generates an operation context (for operations to read and write state)
  * and a UI model class (for the UI to observe it).
  *
  * Schema instances are created once by the generated code to build the runtime state container,
@@ -57,7 +57,7 @@ abstract class AsepticSchema {
     /**
      * Declares a mutable field with [initial] as its starting value.
      *
-     * The generated state handle exposes a typed setter for this field.
+     * The generated operation context exposes a typed setter for this field.
      *
      * ```kotlin
      * @Model
@@ -155,8 +155,8 @@ abstract class AsepticSchema {
     /**
      * Declares a field updated by folding incoming update messages into its current value.
      *
-     * The generated state handle exposes the `update` method that takes an update of type [U], and uses
-     * [update] to apply it to a current state (starting with [initial]) to produce a new value
+     * The generated operation context exposes the `update` method that takes an update of type [U], and uses
+     * [update] to apply it to the current state (starting with [initial]) to produce a new value
      *
      * ```kotlin
      *
@@ -180,7 +180,7 @@ abstract class AsepticSchema {
      * Messages are stored as a queue under the hood, and need to be explicitly consumed one
      * by one
      *
-     * ** Must be annotated with both `@Model` and `@Ui`** - message fields are always accessible
+     * **Must be annotated with both `@Model` and `@Ui`** - message fields are always accessible
      * from operations, and they have their own special way of being read on UI
      *
      * Message fields cannot be read in the model, and cannot be depended on by other fields
@@ -214,16 +214,38 @@ abstract class AsepticSchema {
         BackedPropertyDeclaration(initial, mapper)
 
     /**
-     * Declares a special lens property, that generates a special data class (named the same as the
-     * schema member name, unless [className] is specified) and a handle for it in XxxxHandle class,
-     * that returns an instance populated with consistent current data.
+     * Declares a lens property that generates a data class (named after the schema member, unless
+     * [className] is specified) and an accessor for it on the generated XxxxContext that returns an
+     * internally consistent instance.
      *
      * If any fields are [mutable], also creates a method to update the mutable fields atomically
      *
-     * In a way, it's basically a syntax sugar for calling snapshot or atomic using the specified
-     * fields as a lockRequest
+     * It's a convenience way of reading/writing partial snapshots, and the only way of observing partial
+     * snapshots as a flow
      *
-     * TODO use proper name references and example once handle is finalized
+     * **Must be annotated with `@Model`, cannot be annotated with `@Ui`**
+     *
+     * ```kotlin
+     *
+     * val firstName = mutable("")
+     * val lastName = mutable("")
+     *
+     * @Model
+     * val fullName = lens(firstName, lastName)
+     * ```
+     * ```kotlin
+     * @Operation
+     * suspend fun ProfileContext.rename(first: String, last: String) {
+     *      // atomic read of both sources at one moment
+     *      val current = fullName()
+     *
+     *      // atomic write (both sources are mutable)
+     *      fullName.update {
+     *          firstName = first
+     *          lastName = last
+     *      }
+     * }
+     * ```
      */
     @Suppress("unused")
     protected fun lens(

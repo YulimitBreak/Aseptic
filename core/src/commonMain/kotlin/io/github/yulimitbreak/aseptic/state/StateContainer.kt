@@ -23,26 +23,27 @@ import kotlinx.coroutines.sync.withLock
 class StateContainer internal constructor(
     private val fields: Map<FieldKey, FieldState<*>>,
     private val lockingOrder: List<UpdatableFieldState<*, *, *>>,
-    uiFields: Set<FieldKey>,
+    private val uiFields: Set<FieldKey>,
 ) : UncheckedMap<FieldKey> {
 
     private val consistencyMutex = Mutex()
 
     private val controlGate = MutableStateFlow(true)
 
-    private val uiCombined = fields.filterKeys { key -> uiFields.contains(key) }.let { fields ->
-        val builder = SnapshotFlowBuilder()
-        for ((_, field) in fields) {
-            field.buildSnapshotFlow(builder)
-        }
-        builder.build(controlGate)
-    }
+    fun <Snapshot> snapshotFlow(keys: Set<FieldKey>, mapper: (UncheckedMap<FieldKey>) -> Snapshot) =
+        fields.filterKeys { key -> keys.contains(key) }.let { fields ->
+            val builder = SnapshotFlowBuilder()
+            for ((_, field) in fields) {
+                field.buildSnapshotFlow(builder)
+            }
+            builder.build(controlGate)
+        }.map(mapper)
 
     /**
      * Returns a [StateFlow] of UI state mapped from all `@Ui` fields via [uiMapper].
      */
     fun <UI> uiFlow(scope: CoroutineScope, uiMapper: (UncheckedMap<FieldKey>) -> UI): StateFlow<UI> =
-        uiCombined.map(uiMapper).stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
+        snapshotFlow(uiFields, uiMapper).stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
 
     /**
      * Returns the current value of the field by key.
@@ -79,12 +80,15 @@ class StateContainer internal constructor(
     }
 
     /**
-     * Runs [update] without holding any locks, then obtains locks for changed fields
-     * and writes them atomically, ensuring that [generateSnapshot] does not return
-     * inconsistent values with only a partial write
+     * First gets a full consistent snapshot of the state using [generateSnapshot], then
+     * runs [update] on that snapshot without holding any locks,
+     * then obtains locks for changed fields and writes them atomically,
+     * ensuring that [generateSnapshot] does not return inconsistent values with only a partial write.
+     *
+     * Values returned by [update] overwrite current state, even if actual values have changed since then
      */
-    suspend fun updateAtomic(update: () -> Map<FieldKey, Any?>) {
-        val writes = update()
+    suspend fun updateAtomic(update: (UncheckedMap<FieldKey>) -> AtomicUpdate) {
+        val writes = update(generateSnapshot { it })
         if (writes.isNotEmpty()) {
             writes.keys.withLock { flushAtomicWrite(writes) }
         }
@@ -94,13 +98,14 @@ class StateContainer internal constructor(
      * Locks fields specified in [lockRequest], runs [update] and then writes changed fields
      * atomically, ensuring that [generateSnapshot] and all flows do not return inconsistent values with
      * only a partial write, and that fields from [lockRequest] haven't been changed for
-     * the duration of [update] call
+     * the duration of [update] call. [UncheckedMap] passed to [update] is guaranteed to be consistent on
+     * [lockRequest] fields but no other guarantees given
      *
      * Changed fields have to be a subset of [lockRequest] (no way to ensure proper locking order otherwise)
      */
-    suspend fun updateAtomic(lockRequest: Set<FieldKey>, update: () -> Map<FieldKey, Any?>) {
+    suspend fun updateAtomic(lockRequest: Set<FieldKey>, update: (UncheckedMap<FieldKey>) -> AtomicUpdate) {
         lockRequest.withLock {
-            val writes = update()
+            val writes = update(this)
             if (writes.isNotEmpty()) {
                 check(lockRequest.containsAll(writes.keys)) {
                     "Lock request must include all written fields: ${writes.keys}"
@@ -110,11 +115,13 @@ class StateContainer internal constructor(
         }
     }
 
-    private suspend fun flushAtomicWrite(writes: Map<FieldKey, Any?>) {
+    private suspend fun flushAtomicWrite(writes: AtomicUpdate) {
         consistencyMutex.withLock {
             controlGate.update { false }
-            writes.forEach { (key, value) ->
-                (fields[key] as UpdatableFieldState<*, Any?, *>).update(value)
+            writes.forEach { (key, updateSequence) ->
+                updateSequence.forEach { update ->
+                    (fields[key] as UpdatableFieldState<*, Any?, *>).update(update)
+                }
             }
             controlGate.update { true }
         }
