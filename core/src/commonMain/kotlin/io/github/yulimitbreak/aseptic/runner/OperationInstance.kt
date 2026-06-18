@@ -17,7 +17,7 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 @AsepticInternal
 internal class OperationInstance<Context : BaseAsepticContext<*, *>>(
-    val key: Any,
+    val key: OperationKey,
     private val operation: suspend Context.() -> Unit,
     parentScope: CoroutineScope,
     private val errorHandler: (Throwable) -> Unit,
