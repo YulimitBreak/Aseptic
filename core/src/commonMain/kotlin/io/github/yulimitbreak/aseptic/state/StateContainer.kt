@@ -23,26 +23,27 @@ import kotlinx.coroutines.sync.withLock
 class StateContainer internal constructor(
     private val fields: Map<FieldKey, FieldState<*>>,
     private val lockingOrder: List<UpdatableFieldState<*, *, *>>,
-    uiFields: Set<FieldKey>,
+    private val uiFields: Set<FieldKey>,
 ) : UncheckedMap<FieldKey> {
 
     private val consistencyMutex = Mutex()
 
     private val controlGate = MutableStateFlow(true)
 
-    private val uiCombined = fields.filterKeys { key -> uiFields.contains(key) }.let { fields ->
-        val builder = SnapshotFlowBuilder()
-        for ((_, field) in fields) {
-            field.buildSnapshotFlow(builder)
-        }
-        builder.build(controlGate)
-    }
+    fun <Snapshot> snapshotFlow(keys: Set<FieldKey>, mapper: (UncheckedMap<FieldKey>) -> Snapshot) =
+        fields.filterKeys { key -> keys.contains(key) }.let { fields ->
+            val builder = SnapshotFlowBuilder()
+            for ((_, field) in fields) {
+                field.buildSnapshotFlow(builder)
+            }
+            builder.build(controlGate)
+        }.map(mapper)
 
     /**
      * Returns a [StateFlow] of UI state mapped from all `@Ui` fields via [uiMapper].
      */
     fun <UI> uiFlow(scope: CoroutineScope, uiMapper: (UncheckedMap<FieldKey>) -> UI): StateFlow<UI> =
-        uiCombined.map(uiMapper).stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
+        snapshotFlow(uiFields, uiMapper).stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
 
     /**
      * Returns the current value of the field by key.
@@ -83,8 +84,8 @@ class StateContainer internal constructor(
      * and writes them atomically, ensuring that [generateSnapshot] does not return
      * inconsistent values with only a partial write
      */
-    suspend fun updateAtomic(update: () -> Map<FieldKey, Any?>) {
-        val writes = update()
+    suspend fun updateAtomic(update: (UncheckedMap<FieldKey>) -> AtomicUpdate) {
+        val writes = update(this)
         if (writes.isNotEmpty()) {
             writes.keys.withLock { flushAtomicWrite(writes) }
         }
@@ -98,9 +99,9 @@ class StateContainer internal constructor(
      *
      * Changed fields have to be a subset of [lockRequest] (no way to ensure proper locking order otherwise)
      */
-    suspend fun updateAtomic(lockRequest: Set<FieldKey>, update: () -> Map<FieldKey, Any?>) {
+    suspend fun updateAtomic(lockRequest: Set<FieldKey>, update: (UncheckedMap<FieldKey>) -> AtomicUpdate) {
         lockRequest.withLock {
-            val writes = update()
+            val writes = update(this)
             if (writes.isNotEmpty()) {
                 check(lockRequest.containsAll(writes.keys)) {
                     "Lock request must include all written fields: ${writes.keys}"

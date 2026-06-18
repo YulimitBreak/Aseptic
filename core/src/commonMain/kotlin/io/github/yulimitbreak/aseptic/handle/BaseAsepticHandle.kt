@@ -1,10 +1,9 @@
 package io.github.yulimitbreak.aseptic.handle
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
+import io.github.yulimitbreak.aseptic.state.StateContainer
 
 @AsepticInternal
-open class BaseAsepticHandle protected constructor() {
-
-    @AsepticInternal
-    open class BaseAtomicScope protected constructor()
-}
+abstract class BaseAsepticHandle protected constructor(
+    protected val container: StateContainer
+)
