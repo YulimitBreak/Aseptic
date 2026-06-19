@@ -126,7 +126,7 @@ abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> prote
     suspend fun atomic(
         firstLock: FieldLockProperty,
         vararg otherLocks: FieldLockProperty,
-        update: AtomicScope.() -> Unit
+        update: AtomicScope.() -> Unit,
     ) {
         container.updateAtomic(
             lockRequest = (otherLocks.asIterable() + firstLock).flatMapTo(mutableSetOf()) { it.keys }

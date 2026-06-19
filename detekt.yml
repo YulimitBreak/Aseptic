@@ -21,6 +21,8 @@ formatting:
     excludes: [ '**/test/**' ]
     excludeImports:
       - 'java.util.*'
+  TrailingCommaOnDeclarationSite:
+    active: true
 
 style:
   NewLineAtEndOfFile:

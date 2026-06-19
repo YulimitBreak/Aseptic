@@ -21,7 +21,7 @@ internal class OperationInstance<Context : BaseAsepticContext<*, *>>(
     private val operation: suspend Context.() -> Unit,
     parentScope: CoroutineScope,
     private val errorHandler: (Throwable) -> Unit,
-    private val cleanup: (OperationInstance<Context>) -> Unit
+    private val cleanup: (OperationInstance<Context>) -> Unit,
 ) {
 
     @Volatile

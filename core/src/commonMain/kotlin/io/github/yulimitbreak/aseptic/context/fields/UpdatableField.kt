@@ -13,7 +13,7 @@ import io.github.yulimitbreak.aseptic.state.StateContainer
  */
 open class UpdatableField<T, U> @AsepticInternal constructor(
     key: FieldKey,
-    container: StateContainer
+    container: StateContainer,
 ) : ReadableField<T>(key, container) {
 
     /**

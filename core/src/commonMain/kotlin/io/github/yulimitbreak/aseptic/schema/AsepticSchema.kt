@@ -314,7 +314,7 @@ abstract class AsepticSchema {
         first: FieldDeclaration<*>,
         second: FieldDeclaration<*>,
         vararg other: FieldDeclaration<*>,
-        className: String? = null
+        className: String? = null,
     ) =
         LensPropertyDeclaration
 
@@ -381,7 +381,7 @@ abstract class AsepticSchema {
      */
     @Suppress("MaximumLineLength")
     protected fun <T, SourceUpdate, TrackedUpdate> UpdatableFieldDeclaration<T, SourceUpdate, TrackedUpdate>.tracking(
-        source: TrackableFieldDeclaration<*, *, SourceUpdate>
+        source: TrackableFieldDeclaration<*, *, SourceUpdate>,
     ) = TrackingFieldDeclaration(
         this,
         link = TrackingFieldDeclaration.Link(source) { it }

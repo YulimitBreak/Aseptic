@@ -73,7 +73,7 @@ internal class OperationRunner<Context : BaseAsepticContext<*, *>>(
     }
 
     private fun sendCommand(
-        command: Command<Context>
+        command: Command<Context>,
     ) {
         commandChannel.trySend(command)
     }
@@ -82,7 +82,7 @@ internal class OperationRunner<Context : BaseAsepticContext<*, *>>(
 
         class Dispatch<Context : BaseAsepticContext<*, *>>(
             val operation: OperationInstance<Context>,
-            val policy: DispatchPolicy
+            val policy: DispatchPolicy,
         ) : Command<Context>
 
         class Cancel(val operation: OperationInstance<*>) : Command<Nothing>

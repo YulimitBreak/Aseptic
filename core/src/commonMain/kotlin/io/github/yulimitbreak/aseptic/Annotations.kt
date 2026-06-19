@@ -56,7 +56,7 @@ annotation class Aseptic(
     val baseName: String = "",
     val stateClassSuffix: String = "State",
     val contextClassSuffix: String = "Context",
-    val uiClassSuffix: String = "Ui"
+    val uiClassSuffix: String = "Ui",
 )
 
 /**

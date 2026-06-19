@@ -182,7 +182,7 @@ class SnapshotFlowBuilderGraphTest : BehaviorSpec() {
     }
 
     private fun derivedDeclaration(
-        sources: List<FieldDeclaration<Int>>
+        sources: List<FieldDeclaration<Int>>,
     ): FieldDeclaration<Int> {
         fun combine(numbers: List<Int>) = numbers.mapIndexed { index, num -> num * (index + 1) }.sum()
         return when (sources.size) {

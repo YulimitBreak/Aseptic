@@ -15,7 +15,7 @@ import kotlin.reflect.KProperty
 @AsepticInternal
 abstract class BaseAtomicScope protected constructor(
     private val source: UncheckedMap<FieldKey>,
-    internal val updateBuilder: AtomicUpdateBuilder = AtomicUpdateBuilder()
+    internal val updateBuilder: AtomicUpdateBuilder = AtomicUpdateBuilder(),
 ) {
 
     protected fun <T> readOnlyValue(key: FieldKey): T = source[key]
@@ -26,13 +26,13 @@ abstract class BaseAtomicScope protected constructor(
         @Suppress("UNCHECKED_CAST")
         override fun getValue(
             thisRef: BaseAtomicScope,
-            property: KProperty<*>
+            property: KProperty<*>,
         ): T = updateBuilder.getMutable(key, source[key])
 
         override fun setValue(
             thisRef: BaseAtomicScope,
             property: KProperty<*>,
-            value: T
+            value: T,
         ) {
             updateBuilder.setMutable(key, value)
         }
@@ -56,6 +56,6 @@ abstract class BaseAtomicScope protected constructor(
     }
 
     protected fun <LensScope : BaseAtomicScope> mutableLensProperty(
-        generator: (UncheckedMap<FieldKey>, AtomicUpdateBuilder) -> LensScope
+        generator: (UncheckedMap<FieldKey>, AtomicUpdateBuilder) -> LensScope,
     ) = generator(this.source, this.updateBuilder)
 }

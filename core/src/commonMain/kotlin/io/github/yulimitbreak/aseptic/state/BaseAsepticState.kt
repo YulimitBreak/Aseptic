@@ -30,7 +30,7 @@ abstract class BaseAsepticState<Context : BaseAsepticContext<*, *>, Ui>(
     private val scope: CoroutineScope,
     stateContainerGenerator: StateContainerBuilder.() -> StateContainer,
     contextGenerator: (StateContainer) -> Context,
-    uiMapper: (UncheckedMap<FieldKey>) -> Ui
+    uiMapper: (UncheckedMap<FieldKey>) -> Ui,
 ) {
 
     private val stateContainer = stateContainerGenerator(StateContainerBuilder())
