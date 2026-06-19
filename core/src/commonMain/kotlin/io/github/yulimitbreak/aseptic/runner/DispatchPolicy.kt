@@ -2,11 +2,12 @@ package io.github.yulimitbreak.aseptic.runner
 
 /**
  * How operation dispatcher will handle the situation when there are already operations
- * of the same type running
+ * of the same type running. Only determines how the newly dispatched
+ * operation is handled, does not affect anything after the dispatch.
  */
 enum class DispatchPolicy {
     /**
-     * Run operation concurrently with already running operations (DEFAULT)
+     * Run operation concurrently with already running operations, skipping the queue (DEFAULT)
      */
     CONCURRENT,
 
@@ -17,7 +18,7 @@ enum class DispatchPolicy {
 
     /**
      * Only launch this operation once all currently running operations, and operations
-     * queued before this one are done or canceled
+     * queued before this one are done or cancelled
      */
     QUEUE,
 

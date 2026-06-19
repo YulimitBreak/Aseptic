@@ -6,7 +6,7 @@ import io.github.yulimitbreak.aseptic.schema.fields.FieldDeclaration
 /**
  * Wires all field declarations in a schema into a [StateContainer].
  *
- * Generated `XxxState` constructors instantiate this builder, call registration methods for every
+ * Generated `XxxxState` constructors instantiate this builder, call registration methods for every
  * schema member in **declaration order**, then call [build] to produce the live [StateContainer].
  */
 @AsepticInternal

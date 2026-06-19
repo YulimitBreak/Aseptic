@@ -20,7 +20,7 @@ class BaseAtomicScopeTest : BehaviorSpec() {
 
         val reduced = ReducedFieldAccessor<Int, Int>("red")
 
-        val staticLens = readOnlyLensValue { Lens(it["ro"], it["extra"])}
+        val staticLens = readOnlyLensValue { Lens(it["ro"], it["extra"]) }
 
         fun <S : BaseAtomicScope> nest(generator: (UncheckedMap<FieldKey>, AtomicUpdateBuilder) -> S) =
             mutableLensProperty(generator)

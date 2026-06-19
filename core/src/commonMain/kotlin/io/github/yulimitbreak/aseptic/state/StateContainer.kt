@@ -17,7 +17,7 @@ import kotlinx.coroutines.sync.withLock
 /**
  * Central runtime object that owns all field state for a single schema instance.
  *
- * Created by [StateContainerBuilder] and held by generated `XxxState` classes.
+ * Created by [StateContainerBuilder] and held by generated `XxxxState` classes.
  */
 @Suppress("UNCHECKED_CAST")
 @AsepticInternal
@@ -49,7 +49,8 @@ class StateContainer internal constructor(
      */
     fun <UI> uiFlow(scope: CoroutineScope, uiMapper: (UncheckedMap<FieldKey>) -> UI): StateFlow<UI> =
         snapshotFlow(uiFields, uiMapper).stateIn(
-            scope, SharingStarted.Eagerly,
+            scope,
+            SharingStarted.Eagerly,
             uiMapper(valueMap)
         )
 

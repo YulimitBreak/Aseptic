@@ -6,8 +6,13 @@ import io.github.yulimitbreak.aseptic.state.StateContainer
 import io.github.yulimitbreak.aseptic.util.UncheckedMap
 
 /**
- * Base class for generated XxxxContext classes, that provides access to a [StateContainer]
- * and implementation of atomic/snapshot behavior
+ * Base class for generated `XxxxContext` classes. Provides access to a [StateContainer]
+ * and the implementation of atomic/snapshot behavior.
+ *
+ * The generated class is used as a receiver for [Operations][io.github.yulimitbreak.aseptic.Operation], which can
+ * utilize it to read and modify the state. The class has accessors for all `@Model` annotated
+ * properties in the schema, and also [atomic] and [snapshot] methods, that allow for atomic reads and writes
+ * of a set of fields
  */
 @AsepticInternal
 abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> protected constructor(
@@ -18,7 +23,7 @@ abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> prote
 
     /**
      * Generate a snapshot of the current state - it is guaranteed to be internally consistent,
-     * with no partial atomic writes, but it awaits for all ongoing writes to complete first
+     * with no partial atomic writes, but it waits for all ongoing writes to complete first
      *
      * ```kotlin
      * @Operation
@@ -56,7 +61,7 @@ abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> prote
         )
 
     /**
-     * Takes snapshot of the current state in order to generate mutable AtomicScope. After the completion
+     * Takes a snapshot of the current state in order to generate a mutable AtomicScope. After the completion
      * of [update] all changes to the mutable properties will be written atomically to actual state.
      *
      * Updates to [mutable][io.github.yulimitbreak.aseptic.schema.AsepticSchema.mutable] value fields
@@ -89,7 +94,7 @@ abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> prote
     }
 
     /**
-     * Takes snapshot of the current state in order to generate mutable AtomicScope. After the completion
+     * Takes a snapshot of the current state in order to generate a mutable AtomicScope. After the completion
      * of [update] all changes to the mutable properties will be written atomically to actual state.
      *
      * Prevents fields specified in locking set from being updated by other sources, ensuring that

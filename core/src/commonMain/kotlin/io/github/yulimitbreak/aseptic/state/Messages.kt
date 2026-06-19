@@ -8,7 +8,7 @@ import kotlinx.coroutines.flow.StateFlow
 interface Messages<T : Any> {
 
     /**
-     * A StateFlow of messages - emits oldest emitted message until it is consumed, or null, if there's
+     * A StateFlow of messages - emits the oldest message until it is consumed, or null if there are
      * no unconsumed messages.
      *
      * Messages do not get consumed automatically, [consume] should be called explicitly after the message

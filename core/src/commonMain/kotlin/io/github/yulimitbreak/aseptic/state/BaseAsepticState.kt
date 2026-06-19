@@ -15,8 +15,15 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * An entry point to the Aseptic system. Code generated child class XxxxState
- * provides methods for operation dispatching and handles for Message fields
+ * An entry point to the Aseptic system.
+ *
+ * A generated state class has methods generated for all `@Operation` annotated functions,
+ * handles for observing and consuming messages from
+ * [message][io.github.yulimitbreak.aseptic.schema.AsepticSchema.message] fields, and [ui] state flow.
+ *
+ * The generated class constructor copies constructor parameters from the schema in order to create a
+ * schema instance and use it to generate the state container
+ *
  */
 @AsepticInternal
 abstract class BaseAsepticState<Context : BaseAsepticContext<*, *>, Ui>(
@@ -35,10 +42,8 @@ abstract class BaseAsepticState<Context : BaseAsepticContext<*, *>, Ui>(
     val ui = stateContainer.uiFlow(scope, uiMapper)
 
     /**
-     * Sets a handler for unhandled Operation errors.
-     *
-     * It is recommended to handle all errors inside Operation itself, this is only
-     * a fallback
+     * Sets a fallback error handler for uncaught exceptions happening in operations. It is not intended to be
+     * a normal execution flow, operations should handle all errors themselves
      */
     fun onOperationError(onError: (Throwable) -> Unit) {
         runner.errorHandler = onError
