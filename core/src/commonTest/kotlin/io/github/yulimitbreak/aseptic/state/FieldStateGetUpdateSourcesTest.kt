@@ -5,6 +5,8 @@ package io.github.yulimitbreak.aseptic.state
 import io.github.yulimitbreak.aseptic.schema.fields.Derived1FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.Derived2FieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.MutableValueFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
+import io.github.yulimitbreak.aseptic.schema.fields.TrackingFieldDeclaration
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.matchers.shouldBe
 
@@ -73,6 +75,40 @@ class FieldStateGetUpdateSourcesTest : BehaviorSpec() {
 
             Then("getUpdateSources returns the shared mutable exactly once") {
                 dState.getUpdateSources() shouldBe setOf(mState)
+            }
+        }
+
+        Given("a tracking field over a mutable source") {
+            val sourceDecl = MutableValueFieldDeclaration(0)
+            val fieldMap = StateContainerBuilder.FieldMap()
+            val sourceState = sourceDecl.convert("s", fieldMap).also { fieldMap[sourceDecl] = it }
+            val trackingState = TrackingFieldDeclaration(
+                ReducedFieldDeclaration(emptyList<Int>()) { acc, u: Int -> acc + u },
+                TrackingFieldDeclaration.Link(sourceDecl) { it }
+            ).convert("t", fieldMap)
+
+            Then("getUpdateSources includes the source, so locking the tracking field locks the source") {
+                trackingState.getUpdateSources() shouldBe setOf(sourceState, trackingState)
+            }
+        }
+
+        Given("a tracking chain: mutable source -> tracking -> tracking") {
+            val aDecl = MutableValueFieldDeclaration(0)
+            val bDecl = TrackingFieldDeclaration(
+                ReducedFieldDeclaration(0) { _, u: Int -> u },
+                TrackingFieldDeclaration.Link(aDecl) { it }
+            )
+            val cDecl = TrackingFieldDeclaration(
+                ReducedFieldDeclaration(emptyList<Int>()) { acc, u: Int -> acc + u },
+                TrackingFieldDeclaration.Link(bDecl) { it }
+            )
+            val fieldMap = StateContainerBuilder.FieldMap()
+            val aState = aDecl.convert("a", fieldMap).also { fieldMap[aDecl] = it }
+            val bState = bDecl.convert("b", fieldMap).also { fieldMap[bDecl] = it }
+            val cState = cDecl.convert("c", fieldMap)
+
+            Then("getUpdateSources resolves transitively through the chain to the root mutable") {
+                cState.getUpdateSources() shouldBe setOf(aState, bState, cState)
             }
         }
     }

@@ -61,10 +61,14 @@ abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> prote
      *
      * Updates to [mutable][io.github.yulimitbreak.aseptic.schema.AsepticSchema.mutable] value fields
      * overwrite the current state even if the fields were updated since snapshot was taken. To ensure that
-     * relevant fields are unchanged for the duration of the [update], use locking set version of atomic
+     * relevant fields are unchanged for the duration of the [update], use locking set version of atomic.
      *
      * Dependencies between fields are not preserved in the scope, update to a mutable value field
-     * does not update the values of the derived fields
+     * does not update the values of the derived fields.
+     *
+     * Values returned by members of atomic scope are taken at the moment of execution and do not update
+     * for the duration of [atomic] unless updated manually. But because of that they might not reflect
+     * the actual state of the fields after the start
      *
      * ```kotlin
      * @Operation
@@ -78,8 +82,9 @@ abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> prote
      * ```
      */
     suspend fun atomic(update: AtomicScope.() -> Unit) {
-        container.updateAtomic { source ->
-            atomicScopeGenerator(source).apply(update).updateBuilder.build()
+        val map = container.frozenSnapshotMap()
+        container.updateAtomic {
+            atomicScopeGenerator(map).apply(update).updateBuilder.build()
         }
     }
 
@@ -88,13 +93,19 @@ abstract class BaseAsepticContext<Snapshot, AtomicScope : BaseAtomicScope> prote
      * of [update] all changes to the mutable properties will be written atomically to actual state.
      *
      * Prevents fields specified in locking set from being updated by other sources, ensuring that
-     * the state of these fields is correct for the duration of [update].
+     * the state of these fields is not changed for the duration of [update]. No such guarantees
+     * apply to fields outside the set.
      *
      * **Updated fields must be a subset of the locking set** - violation would throw [IllegalStateException]
      *
      * All field types except for [MessageField][io.github.yulimitbreak.aseptic.context.fields.MessageField]
      * can be used as a locking set, as well as
      * [LensProperty][io.github.yulimitbreak.aseptic.context.properties.LensProperty]
+     *
+     * Values returned by members of atomic scope for the fields in the locking set are taken at the moment
+     * of execution and do not change for the duration of [atomic] unless updated manually. But because of that
+     * they might not reflect the actual state of the fields after the start. Values of fields outside
+     * the locking set aren't guaranteed to be frozen and might return different values at different points in time.
      *
      * ```kotlin
      * @Operation

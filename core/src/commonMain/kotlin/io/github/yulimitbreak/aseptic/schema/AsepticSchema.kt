@@ -270,6 +270,10 @@ abstract class AsepticSchema {
      * val articleCards = reduced<List<ArticleCard>, List<ArticleCard>>(emptyList()) { cards, new -> cards + new }
      *     .tracking(articles) { newArticles -> newArticles.map { it.toCard() } }
      * ```
+     *
+     * **The tracking update is non-atomic**. After non-atomic updates to the tracked field,
+     * snapshots and snapshot flows might still receive old value of tracking field until
+     * the write completes
      */
     @Suppress("MaximumLineLength")
     protected fun <T, SourceUpdate, Update, TrackedUpdate> UpdatableFieldDeclaration<T, Update, TrackedUpdate>.tracking(
@@ -296,6 +300,10 @@ abstract class AsepticSchema {
      * val scoreHistory = reduced<List<Int>, Int>(emptyList()) { history, delta -> history + delta }
      *     .tracking(score)
      * ```
+     *
+     * **The tracking update is non-atomic**. After non-atomic updates to the tracked field,
+     * snapshots and snapshot flows might still receive old value of tracking field until
+     * the write completes
      */
     @Suppress("MaximumLineLength")
     protected fun <T, SourceUpdate, TrackedUpdate> UpdatableFieldDeclaration<T, SourceUpdate, TrackedUpdate>.tracking(
@@ -321,6 +329,10 @@ abstract class AsepticSchema {
      * val cartTotal = mutable(0.0)
      *     .tracking(cartItems) { currentTotal, addedItem -> currentTotal + addedItem.price }
      * ```
+     *
+     * **The tracking update is non-atomic**. After non-atomic updates to the tracked field,
+     * snapshots and snapshot flows might still receive old value of tracking field until
+     * the write completes
      */
     protected inline fun <T, SourceUpdate> MutableValueFieldDeclaration<T>.tracking(
         source: TrackableFieldDeclaration<*, *, SourceUpdate>,

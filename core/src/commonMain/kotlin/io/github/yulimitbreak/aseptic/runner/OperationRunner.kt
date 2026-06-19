@@ -23,6 +23,7 @@ internal class OperationRunner<Context : BaseAsepticContext<*, *>>(
         coroutineScope.coroutineContext + SupervisorJob(parent = coroutineScope.coroutineContext[Job])
     )
 
+    @Volatile
     var errorHandler: (Throwable) -> Unit = { throw it }
 
     private val groups = mutableMapOf<OperationKey, OperationGroup<Context>>()

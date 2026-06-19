@@ -3,6 +3,7 @@
 package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.state.FieldKey
+import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
@@ -31,18 +32,20 @@ class ReducedFieldDeclaration<T, U> internal constructor(
         key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
     ): UpdatableFieldState<T, U, U> =
-        State(key, isLockable = true, initial, update)
+        State(key, isLockable = true, initial, update, dependencies = emptySet())
 
     override fun convertForTracking(
         key: FieldKey,
-        fields: StateContainerBuilder.FieldMap
-    ): UpdatableFieldState<T, U, U> = State(key, isLockable = false, initial, update)
+        fields: StateContainerBuilder.FieldMap,
+        source: FieldState<*>,
+    ): UpdatableFieldState<T, U, U> = State(key, isLockable = false, initial, update, dependencies = setOf(source))
 
     private class State<T, U>(
         key: FieldKey,
         isLockable: Boolean,
         initial: T,
         private val reducer: (T, U) -> T,
+        override val dependencies: Set<FieldState<*>>,
     ) : UpdatableFieldState<T, U, U>(key, isLockable) {
 
         override val value: T get() = stateFlow.value

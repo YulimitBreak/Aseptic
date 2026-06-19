@@ -54,7 +54,10 @@ internal class OperationInstance<Context : BaseAsepticContext<*, *>>(
                 errorHandler(e)
             }
         }.apply {
-            invokeOnCompletion { cleanup(this@OperationInstance) }
+            invokeOnCompletion {
+                cleanup(this@OperationInstance)
+                instanceParentJob.complete()
+            }
         }
         job?.start()
     }

@@ -2,6 +2,7 @@ package io.github.yulimitbreak.aseptic.state
 
 import io.github.yulimitbreak.aseptic.AsepticInternal
 import io.github.yulimitbreak.aseptic.util.UncheckedMap
+import io.github.yulimitbreak.aseptic.util.UncheckedMapWrapper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,11 +25,15 @@ class StateContainer internal constructor(
     private val fields: Map<FieldKey, FieldState<*>>,
     private val lockingOrder: List<UpdatableFieldState<*, *, *>>,
     private val uiFields: Set<FieldKey>,
-) : UncheckedMap<FieldKey> {
+) {
 
     private val consistencyMutex = Mutex()
 
     private val controlGate = MutableStateFlow(true)
+
+    private val valueMap = object : UncheckedMap<FieldKey> {
+        override fun <T> get(key: FieldKey): T = this@StateContainer[key]
+    }
 
     fun <Snapshot> snapshotFlow(keys: Set<FieldKey>, mapper: (UncheckedMap<FieldKey>) -> Snapshot) =
         fields.filterKeys { key -> keys.contains(key) }.let { fields ->
@@ -43,7 +48,10 @@ class StateContainer internal constructor(
      * Returns a [StateFlow] of UI state mapped from all `@Ui` fields via [uiMapper].
      */
     fun <UI> uiFlow(scope: CoroutineScope, uiMapper: (UncheckedMap<FieldKey>) -> UI): StateFlow<UI> =
-        snapshotFlow(uiFields, uiMapper).stateIn(scope, SharingStarted.Eagerly, uiMapper(this))
+        snapshotFlow(uiFields, uiMapper).stateIn(
+            scope, SharingStarted.Eagerly,
+            uiMapper(valueMap)
+        )
 
     /**
      * Returns the current value of the field by key.
@@ -52,7 +60,7 @@ class StateContainer internal constructor(
      *
      * Performs an unchecked cast, should be used only in generated code.
      */
-    override operator fun <T> get(key: FieldKey): T = fields[key]?.value as T
+    operator fun <T> get(key: FieldKey): T = fields.getValue(key).value as T
 
     /**
      * Returns the underlying [Flow] for the field by key.
@@ -105,7 +113,7 @@ class StateContainer internal constructor(
      */
     suspend fun updateAtomic(lockRequest: Set<FieldKey>, update: (UncheckedMap<FieldKey>) -> AtomicUpdate) {
         lockRequest.withLock {
-            val writes = update(this)
+            val writes = update(valueMap)
             if (writes.isNotEmpty()) {
                 check(lockRequest.containsAll(writes.keys)) {
                     "Lock request must include all written fields: ${writes.keys}"
@@ -132,8 +140,8 @@ class StateContainer internal constructor(
      * atomic writes were completed, and the state is internally consistent.
      */
     suspend fun <Snapshot> generateSnapshot(
-        snapshotMapper: (UncheckedMap<FieldKey>) -> Snapshot
-    ): Snapshot = consistencyMutex.withLock { snapshotMapper(this) }
+        snapshotMapper: (UncheckedMap<FieldKey>) -> Snapshot,
+    ): Snapshot = consistencyMutex.withLock { snapshotMapper(valueMap) }
 
     /**
      * Locks fields specified in [lockRequest] and generates snapshot using [snapshotMapper],
@@ -142,8 +150,17 @@ class StateContainer internal constructor(
      */
     suspend fun <Snapshot> generateSnapshot(
         lockRequest: Set<FieldKey>,
-        snapshotMapper: (UncheckedMap<FieldKey>) -> Snapshot
-    ): Snapshot = lockRequest.withLock { snapshotMapper(this) }
+        snapshotMapper: (UncheckedMap<FieldKey>) -> Snapshot,
+    ): Snapshot = lockRequest.withLock { snapshotMapper(valueMap) }
+
+    /**
+     * Generate a frozen UncheckedMap of the whole state
+     */
+    internal suspend fun frozenSnapshotMap(): UncheckedMap<FieldKey> = consistencyMutex.withLock {
+        UncheckedMapWrapper(
+            fields.mapValues { (_, v) -> v.value }
+        )
+    }
 
     private suspend inline fun <R> Set<FieldKey>.withLock(block: () -> R): R {
         if (this.isEmpty()) {

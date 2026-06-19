@@ -29,13 +29,16 @@ import io.github.yulimitbreak.aseptic.runner.DispatchPolicy
  * the generated class names are derived from the schema class name
  * @param contextClassSuffix determines the suffix for the name of a generated context class
  * that is used as a receiver of Operations - default value is "Context"
- * @param stateClassSuffix overrides suffix name for a generated state manager class that is used as an entry
+ * @param stateClassSuffix determines suffix name for a generated state manager class that is used as an entry
  * point for the execution of Operations - default value is "State"
+ * @param uiClassSuffix determines suffix name for a generated UI class that contains
+ * fields marked using `@Ui` annotation
  */
 annotation class Aseptic(
     val baseName: String = "",
     val contextClassSuffix: String = "Context",
     val stateClassSuffix: String = "State",
+    val uiClassSuffix: String = "Ui"
 )
 
 /**

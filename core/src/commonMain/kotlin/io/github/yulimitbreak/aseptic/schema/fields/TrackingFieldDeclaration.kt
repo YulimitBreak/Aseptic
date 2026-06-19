@@ -25,7 +25,7 @@ class TrackingFieldDeclaration<out T, Update, out TrackedUpdate> internal constr
         key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
     ): UpdatableFieldState<T, Nothing, TrackedUpdate> {
-        val state = original.convertForTracking(key, fields)
+        val state = original.convertForTracking(key, fields, fields[link.source])
         link.registerUpdate(fields, state)
         return state
     }

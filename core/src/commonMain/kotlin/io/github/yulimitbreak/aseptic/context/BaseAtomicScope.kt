@@ -19,10 +19,9 @@ abstract class BaseAtomicScope protected constructor(
     internal val updateBuilder: AtomicUpdateBuilder = AtomicUpdateBuilder()
 ) {
 
-    protected fun <T> readOnlyFieldDelegate(key: FieldKey) = ReadOnlyProperty<BaseAtomicScope, T> { _, _ ->
-        source[key]
-    }
+    protected fun <T> readOnlyValue(key: FieldKey): T = source[key]
 
+    protected fun <Lens> readOnlyLensValue(lensGenerator: (UncheckedMap<FieldKey>) -> Lens) = lensGenerator(source)
     protected fun <T> mutableFieldDelegate(key: FieldKey) = object : ReadWriteProperty<BaseAtomicScope, T> {
 
         @Suppress("UNCHECKED_CAST")
@@ -57,7 +56,7 @@ abstract class BaseAtomicScope protected constructor(
         }
     }
 
-    protected fun <LensScope : BaseAtomicScope> lensProperty(
+    protected fun <LensScope : BaseAtomicScope> mutableLensProperty(
         generator: (UncheckedMap<FieldKey>, AtomicUpdateBuilder) -> LensScope
     ) = generator(this.source, this.updateBuilder)
 }
