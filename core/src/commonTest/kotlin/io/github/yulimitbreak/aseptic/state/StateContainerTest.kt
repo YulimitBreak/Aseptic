@@ -8,6 +8,7 @@ import io.github.yulimitbreak.aseptic.schema.fields.MutableValueFieldDeclaration
 import io.github.yulimitbreak.aseptic.schema.fields.ReducedFieldDeclaration
 import io.kotest.assertions.assertSoftly
 import io.kotest.assertions.throwables.shouldThrow
+import io.kotest.assertions.withClue
 import io.kotest.core.spec.style.BehaviorSpec
 import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.shouldBe
@@ -51,6 +52,17 @@ class StateContainerTest : BehaviorSpec() {
                     container.update<(Int) -> Int>("count") { it + 5 }
                     container.update<(Int) -> Int>("count") { it * 2 }
                     container.get<Int>("count") shouldBe 30
+                    scope.cancel()
+                }
+            }
+
+            When("multiple concurrent updates each transform the field based on its current value") {
+                Then("all transforms are applied — none are lost to races") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = buildContainer { addField("count", false, countDecl) }
+                    repeat(5) { launch { container.update<(Int) -> Int>("count") { it + 1 } } }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    container.get<Int>("count") shouldBe 15
                     scope.cancel()
                 }
             }
@@ -212,8 +224,12 @@ class StateContainerTest : BehaviorSpec() {
                     val a = container.get<Int>("a")
                     val b = container.get<Int>("b")
                     assertSoftly {
-                        (a == 1 || a == 2) shouldBe true
-                        b shouldBe a
+                        withClue("field has value $a instead of one of committed values") {
+                            (a == 1 || a == 2) shouldBe true
+                        }
+                        withClue("two fields don't have consistent values") {
+                            b shouldBe a
+                        }
                     }
                     scope.cancel()
                 }
@@ -228,6 +244,62 @@ class StateContainerTest : BehaviorSpec() {
                     testCoroutineScheduler.advanceUntilIdle()
                     val result = container.get<Int>("a")
                     (result == 1 || result == 2) shouldBe true
+                    scope.cancel()
+                }
+            }
+
+            When("two deferred atomics run concurrently on the same fields") {
+                Then("both complete and the final state is consistent across fields") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    launch { container.updateAtomic { mapOf("a" to listOf(1), "b" to listOf(1)) } }
+                    launch { container.updateAtomic { mapOf("a" to listOf(2), "b" to listOf(2)) } }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    container.get<Int>("a") shouldBe container.get<Int>("b")
+                    scope.cancel()
+                }
+            }
+
+            When("a direct update() and a deferred atomic run concurrently on the same field") {
+                Then("both complete without deadlock and the field holds one of the two written values") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    launch { container.update("a", 99) }
+                    launch { container.updateAtomic { mapOf("a" to listOf(77)) } }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    val result = container.get<Int>("a")
+                    (result == 99 || result == 77) shouldBe true
+                    scope.cancel()
+                }
+            }
+
+            When("a full snapshot is taken after two concurrent deferred atomics") {
+                Then("the snapshot sees a consistent state across both fields") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    launch { container.updateAtomic { mapOf("a" to listOf(1), "b" to listOf(1)) } }
+                    launch { container.updateAtomic { mapOf("a" to listOf(2), "b" to listOf(2)) } }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    val snapshot = container.generateSnapshot { map -> map.get<Int>("a") to map.get<Int>("b") }
+                    snapshot.first shouldBe snapshot.second
+                    scope.cancel()
+                }
+            }
+
+            When("a pre-locked atomic and a fine-grained snapshot compete for the same field locks") {
+                Then("both complete without deadlock and the snapshot sees a consistent state") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    var snapshot = 0 to 0
+                    launch { container.updateAtomic(setOf("a", "b")) { mapOf("a" to listOf(100), "b" to listOf(200)) } }
+                    launch {
+                        snapshot = container.generateSnapshot(setOf("a", "b")) { map ->
+                            map.get<Int>("a") to map.get<Int>("b")
+                        }
+                    }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    val (a, b) = snapshot
+                    ((a == 5 && b == 10) || (a == 100 && b == 200)) shouldBe true
                     scope.cancel()
                 }
             }
@@ -268,6 +340,37 @@ class StateContainerTest : BehaviorSpec() {
                     assertSoftly {
                         snapshot.first shouldBe 99
                         snapshot.second shouldBe 77
+                    }
+                    scope.cancel()
+                }
+            }
+
+            When("frozenSnapshotMap is called and fields are later updated") {
+                Then("the frozen map is unaffected by the later updates") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    val frozen = container.frozenSnapshotMap()
+                    container.updateAtomic { mapOf("a" to listOf(99), "b" to listOf(88)) }
+                    assertSoftly {
+                        frozen.get<Int>("a") shouldBe 5
+                        frozen.get<Int>("b") shouldBe 10
+                    }
+                    scope.cancel()
+                }
+            }
+
+            When("a full snapshot and a fine-grained snapshot run concurrently") {
+                Then("both complete without deadlock and return correct values") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    var fullSnap = 0 to 0
+                    var fineSnap = 0
+                    launch { fullSnap = container.generateSnapshot { map -> map.get<Int>("a") to map.get<Int>("b") } }
+                    launch { fineSnap = container.generateSnapshot(setOf("a")) { map -> map.get<Int>("a") } }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    assertSoftly {
+                        fullSnap shouldBe (5 to 10)
+                        fineSnap shouldBe 5
                     }
                     scope.cancel()
                 }
@@ -391,6 +494,68 @@ class StateContainerTest : BehaviorSpec() {
                 val uiFlow = container.uiFlow(scope) { map -> map.get<String>("label") }
                 uiFlow.value shouldBe "hello"
                 scope.cancel()
+            }
+        }
+
+        Given("a container with a reduced field using an accumulating reducer") {
+            val accumDecl = ReducedFieldDeclaration(0) { prev, delta: Int -> prev + delta }
+
+            fun container() = buildContainer { addField("total", false, accumDecl) }
+
+            When("multiple updates are applied sequentially") {
+                Then("each update receives the accumulated result of all previous updates") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    container.update("total", 5)
+                    container.update("total", 3)
+                    container.update("total", 2)
+                    container.get<Int>("total") shouldBe 10
+                    scope.cancel()
+                }
+            }
+
+            When("multiple concurrent updates each add to the accumulated total") {
+                Then("all deltas are applied — none are lost to races") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    repeat(4) { launch { container.update("total", 10) } }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    container.get<Int>("total") shouldBe 40
+                    scope.cancel()
+                }
+            }
+        }
+
+        Given("a container with two ui-visible reduced fields updated atomically") {
+            val fooDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
+            val barDecl = ReducedFieldDeclaration(0) { _, u: Int -> u }
+
+            fun container() = buildContainer {
+                addField("foo", true, fooDecl)
+                addField("bar", true, barDecl)
+            }
+
+            When("multiple atomics concurrently write both fields to matching values") {
+                Then("the ui flow never emits a state where only one field is updated") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    val uiFlow = container.uiFlow(scope) { map -> map.get<Int>("foo") to map.get<Int>("bar") }
+                    val emissions = mutableListOf<Pair<Int, Int>>()
+                    val collectJob = launch { uiFlow.collect { emissions.add(it) } }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    repeat(5) { i ->
+                        launch {
+                            container.updateAtomic(
+                                setOf("foo", "bar")
+                            ) { mapOf("foo" to listOf(i + 1), "bar" to listOf(i + 1)) }
+                        }
+                    }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    collectJob.cancel()
+                    val badEmissions = emissions.filter { (f, b) -> f != b }
+                    badEmissions.isEmpty() shouldBe true
+                    scope.cancel()
+                }
             }
         }
     }

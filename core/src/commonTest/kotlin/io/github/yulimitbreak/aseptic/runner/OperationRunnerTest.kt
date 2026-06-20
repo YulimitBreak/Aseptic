@@ -514,6 +514,30 @@ class OperationRunnerTest : BehaviorSpec() {
                 }
             }
         }
+
+        Given("operations dispatched and run to completion") {
+            Then("their coroutine jobs are released - completed operations do not leak") {
+                val scope = CoroutineScope(coroutineContext + Job())
+                val runner = OperationRunner(scope, TestContext())
+                val tracker = Tracker()
+
+                repeat(10) { i ->
+                    val name = "op$i"
+                    runner.dispatch(tracker.op(name), DispatchPolicy.CONCURRENT, key)
+                    tracker.finish(name)
+                }
+                testCoroutineScheduler.advanceUntilIdle()
+                tracker.completed.size shouldBe 10
+
+                // Each operation's parent job is a child of the runner's supervisor scope, which is itself
+                // a child of the test scope. Once an operation completes, its job must be released -
+                // otherwise completed operations leak (the job keeps the operation and its context alive).
+                val liveOperationJobs = scope.coroutineContext[Job]!!.children.sumOf { it.children.count() }
+                liveOperationJobs shouldBe 0
+
+                scope.cancel()
+            }
+        }
     }
 
     private companion object {
