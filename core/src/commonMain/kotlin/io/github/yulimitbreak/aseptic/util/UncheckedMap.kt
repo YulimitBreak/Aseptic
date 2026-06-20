@@ -8,7 +8,7 @@ import io.github.yulimitbreak.aseptic.AsepticInternal
  * guarantee safe use
  */
 @AsepticInternal
-interface UncheckedMap<in Key> {
+interface UncheckedMap<Key> {
     operator fun <T> get(key: Key): T
 }
 
@@ -17,7 +17,6 @@ interface UncheckedMap<in Key> {
  */
 @AsepticInternal
 @Suppress("UNCHECKED_CAST")
-@JvmInline
-internal value class UncheckedMapWrapper<Key>(private val source: Map<Key, Any?>) : UncheckedMap<Key> {
+internal class UncheckedMapWrapper<Key>(private val source: Map<Key, Any?>) : UncheckedMap<Key> {
     override fun <T> get(key: Key): T = source.getValue(key) as T
 }

@@ -69,11 +69,11 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.CONCURRENT)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.CONCURRENT, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactlyInAnyOrder listOf("a", "b")
 
@@ -93,10 +93,10 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
                         testCoroutineScheduler.advanceUntilIdle()
 
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
@@ -119,10 +119,10 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
                         testCoroutineScheduler.advanceUntilIdle()
 
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.DROP)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.DROP, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
@@ -142,11 +142,11 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.CANCEL)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.CANCEL, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.cancelled shouldContainExactly listOf("a")
                         tracker.started shouldContainExactly listOf("a", "b")
@@ -166,7 +166,7 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        val handle = runner.dispatch(tracker.op("a"), key, firstPolicy)
+                        val handle = runner.dispatch(tracker.op("a"), firstPolicy, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
@@ -189,11 +189,11 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), StandardOperationKey("x"), firstPolicy)
+                        runner.dispatch(tracker.op("a"), firstPolicy, StandardOperationKey("x"))
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
-                        runner.dispatch(tracker.op("b"), StandardOperationKey("y"), secondPolicy)
+                        runner.dispatch(tracker.op("b"), secondPolicy, StandardOperationKey("y"))
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactlyInAnyOrder listOf("a", "b")
 
@@ -218,8 +218,8 @@ class OperationRunnerTest : BehaviorSpec() {
                             val scope = CoroutineScope(coroutineContext + Job())
                             val runner = OperationRunner(scope, TestContext())
                             val tracker = Tracker()
-                            runner.dispatch(tracker.op("a"), key, firstPolicy)
-                            runner.dispatch(tracker.op("b"), key, secondPolicy)
+                            runner.dispatch(tracker.op("a"), firstPolicy, key)
+                            runner.dispatch(tracker.op("b"), secondPolicy, key)
                             testCoroutineScheduler.advanceUntilIdle()
                             tracker.finish("a")
                             tracker.finish("b")
@@ -231,9 +231,9 @@ class OperationRunnerTest : BehaviorSpec() {
                             val scope = CoroutineScope(coroutineContext + Job())
                             val runner = OperationRunner(scope, TestContext())
                             val tracker = Tracker()
-                            runner.dispatch(tracker.op("a"), key, firstPolicy)
+                            runner.dispatch(tracker.op("a"), firstPolicy, key)
                             testCoroutineScheduler.advanceUntilIdle()
-                            runner.dispatch(tracker.op("b"), key, secondPolicy)
+                            runner.dispatch(tracker.op("b"), secondPolicy, key)
                             testCoroutineScheduler.advanceUntilIdle()
                             tracker.finish("a")
                             tracker.finish("b")
@@ -255,9 +255,9 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
-                        runner.dispatch(tracker.op("c"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
+                        runner.dispatch(tracker.op("c"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
@@ -284,9 +284,9 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        val middle = runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
-                        runner.dispatch(tracker.op("c"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        val middle = runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
+                        runner.dispatch(tracker.op("c"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
 
                         middle.cancel()
@@ -313,8 +313,8 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        val queued = runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        val queued = runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
@@ -337,8 +337,8 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        val running = runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
+                        val running = runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
@@ -364,8 +364,8 @@ class OperationRunnerTest : BehaviorSpec() {
                         val errors = mutableListOf<Throwable>()
                         runner.errorHandler = { errors += it }
 
-                        runner.dispatch({ throw IllegalStateException("boom") }, key, firstPolicy)
-                        runner.dispatch(tracker.op("next"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch({ throw IllegalStateException("boom") }, firstPolicy, key)
+                        runner.dispatch(tracker.op("next"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
 
                         errors.map { it.message } shouldContainExactly listOf("boom")
@@ -386,12 +386,12 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
-                        runner.dispatch(tracker.op("c"), key, DispatchPolicy.CONCURRENT)
+                        runner.dispatch(tracker.op("c"), DispatchPolicy.CONCURRENT, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactlyInAnyOrder listOf("a", "c")
 
@@ -412,11 +412,11 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
 
-                        runner.dispatch(tracker.op("c"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("c"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
@@ -443,11 +443,11 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
 
-                        runner.dispatch(tracker.op("c"), key, DispatchPolicy.DROP)
+                        runner.dispatch(tracker.op("c"), DispatchPolicy.DROP, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
@@ -470,12 +470,12 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.QUEUE)
+                        runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.QUEUE, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactly listOf("a")
 
-                        runner.dispatch(tracker.op("c"), key, DispatchPolicy.CANCEL)
+                        runner.dispatch(tracker.op("c"), DispatchPolicy.CANCEL, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.cancelled shouldContainExactly listOf("a")
                         tracker.started shouldContainExactlyInAnyOrder listOf("a", "c")
@@ -497,8 +497,8 @@ class OperationRunnerTest : BehaviorSpec() {
                         val runner = OperationRunner(scope, TestContext())
                         val tracker = Tracker()
 
-                        val first = runner.dispatch(tracker.op("a"), key, firstPolicy)
-                        runner.dispatch(tracker.op("b"), key, DispatchPolicy.CONCURRENT)
+                        val first = runner.dispatch(tracker.op("a"), firstPolicy, key)
+                        runner.dispatch(tracker.op("b"), DispatchPolicy.CONCURRENT, key)
                         testCoroutineScheduler.advanceUntilIdle()
                         tracker.started shouldContainExactlyInAnyOrder listOf("a", "b")
 
@@ -512,6 +512,30 @@ class OperationRunnerTest : BehaviorSpec() {
                         scope.cancel()
                     }
                 }
+            }
+        }
+
+        Given("operations dispatched and run to completion") {
+            Then("their coroutine jobs are released - completed operations do not leak") {
+                val scope = CoroutineScope(coroutineContext + Job())
+                val runner = OperationRunner(scope, TestContext())
+                val tracker = Tracker()
+
+                repeat(10) { i ->
+                    val name = "op$i"
+                    runner.dispatch(tracker.op(name), DispatchPolicy.CONCURRENT, key)
+                    tracker.finish(name)
+                }
+                testCoroutineScheduler.advanceUntilIdle()
+                tracker.completed.size shouldBe 10
+
+                // Each operation's parent job is a child of the runner's supervisor scope, which is itself
+                // a child of the test scope. Once an operation completes, its job must be released -
+                // otherwise completed operations leak (the job keeps the operation and its context alive).
+                val liveOperationJobs = scope.coroutineContext[Job]!!.children.sumOf { it.children.count() }
+                liveOperationJobs shouldBe 0
+
+                scope.cancel()
             }
         }
     }

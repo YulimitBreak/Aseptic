@@ -11,7 +11,12 @@ import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.util.UncheckedMap
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.BehaviorSpec
+import io.kotest.core.test.testCoroutineScheduler
 import io.kotest.matchers.shouldBe
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 
 class BaseAsepticContextTest : BehaviorSpec() {
 
@@ -83,6 +88,26 @@ class BaseAsepticContextTest : BehaviorSpec() {
                 Then("it returns the snapshot of the current state") {
                     val container = container()
                     Ctx(container).snapshot(container.lock("first")) shouldBe Snap("A", "B")
+                }
+            }
+
+            When("a deferred atomic runs concurrently with a direct field update") {
+                Then("the atomic commits both its fields and neither write corrupts the other") {
+                    val scope = CoroutineScope(coroutineContext + Job())
+                    val container = container()
+                    val ctx = Ctx(container)
+                    launch {
+                        ctx.atomic {
+                            first = "X"
+                            last = "Y"
+                        }
+                    }
+                    launch { container.update<(String) -> String>("first") { "Z" } }
+                    testCoroutineScheduler.advanceUntilIdle()
+                    val snap = ctx.snapshot()
+                    snap.last shouldBe "Y"
+                    (snap.first == "X" || snap.first == "Z") shouldBe true
+                    scope.cancel()
                 }
             }
         }

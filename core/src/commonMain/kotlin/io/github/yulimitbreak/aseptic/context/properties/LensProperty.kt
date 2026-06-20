@@ -16,7 +16,7 @@ import io.github.yulimitbreak.aseptic.util.UncheckedMap
 open class LensProperty<Lens> @AsepticInternal constructor(
     override val keys: Set<FieldKey>,
     protected val container: StateContainer,
-    private val snapshotGenerator: (UncheckedMap<FieldKey>) -> Lens
+    private val snapshotGenerator: (UncheckedMap<FieldKey>) -> Lens,
 ) : FieldLockProperty {
 
     /**
@@ -40,7 +40,7 @@ open class MutableLensProperty<Lens, LensScope : BaseAtomicScope> @AsepticIntern
     keys: Set<FieldKey>,
     container: StateContainer,
     snapshotGenerator: (UncheckedMap<FieldKey>) -> Lens,
-    private val scopeGenerator: (UncheckedMap<FieldKey>) -> LensScope
+    private val scopeGenerator: (UncheckedMap<FieldKey>) -> LensScope,
 ) : LensProperty<Lens>(keys, container, snapshotGenerator) {
 
     /**

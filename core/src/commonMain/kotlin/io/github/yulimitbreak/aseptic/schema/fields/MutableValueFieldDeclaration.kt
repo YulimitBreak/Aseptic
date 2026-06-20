@@ -3,6 +3,7 @@
 package io.github.yulimitbreak.aseptic.schema.fields
 
 import io.github.yulimitbreak.aseptic.state.FieldKey
+import io.github.yulimitbreak.aseptic.state.FieldState
 import io.github.yulimitbreak.aseptic.state.SnapshotFlowBuilder
 import io.github.yulimitbreak.aseptic.state.StateContainerBuilder
 import io.github.yulimitbreak.aseptic.state.UpdatableFieldState
@@ -22,17 +23,19 @@ class MutableValueFieldDeclaration<T> internal constructor(
     override fun convert(
         key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
-    ): UpdatableFieldState<T, (T) -> T, T> = State(key, isLockable = true, initial)
+    ): UpdatableFieldState<T, (T) -> T, T> = State(key, isLockable = true, initial, dependencies = emptySet())
 
     override fun convertForTracking(
         key: FieldKey,
-        fields: StateContainerBuilder.FieldMap
-    ): UpdatableFieldState<T, (T) -> T, T> = State(key, isLockable = false, initial)
+        fields: StateContainerBuilder.FieldMap,
+        source: FieldState<*>,
+    ): UpdatableFieldState<T, (T) -> T, T> = State(key, isLockable = false, initial, dependencies = setOf(source))
 
     private class State<T>(
         key: FieldKey,
         isLockable: Boolean,
-        initial: T
+        initial: T,
+        override val dependencies: Set<FieldState<*>>,
     ) : UpdatableFieldState<T, (T) -> T, T>(key, isLockable) {
 
         override fun doUpdate(update: (T) -> T): T {

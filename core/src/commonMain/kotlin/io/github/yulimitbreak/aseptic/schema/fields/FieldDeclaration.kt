@@ -57,5 +57,6 @@ abstract class UpdatableFieldDeclaration<out T, in Update, out TrackedUpdate> in
     internal abstract fun convertForTracking(
         key: FieldKey,
         fields: StateContainerBuilder.FieldMap,
+        source: FieldState<*>,
     ): UpdatableFieldState<T, Update, TrackedUpdate>
 }

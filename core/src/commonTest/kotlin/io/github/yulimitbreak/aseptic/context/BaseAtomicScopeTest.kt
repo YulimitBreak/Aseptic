@@ -15,17 +15,21 @@ class BaseAtomicScopeTest : BehaviorSpec() {
         source: UncheckedMap<FieldKey>,
         builder: AtomicUpdateBuilder = AtomicUpdateBuilder(),
     ) : BaseAtomicScope(source, builder) {
-        val readOnly: Int by readOnlyFieldDelegate("ro")
+        val readOnly: Int = readOnlyValue("ro")
         var mutableValue: Int by mutableFieldDelegate("mut")
 
         val reduced = ReducedFieldAccessor<Int, Int>("red")
 
+        val staticLens = readOnlyLensValue { Lens(it["ro"], it["extra"]) }
+
         fun <S : BaseAtomicScope> nest(generator: (UncheckedMap<FieldKey>, AtomicUpdateBuilder) -> S) =
-            lensProperty(generator)
+            mutableLensProperty(generator)
+
+        data class Lens(val ro: Int, val extra: String)
     }
 
     private fun source() =
-        UncheckedMapWrapper(mapOf<FieldKey, Any?>("ro" to 1, "mut" to 10, "red" to 100))
+        UncheckedMapWrapper(mapOf<FieldKey, Any?>("ro" to 1, "mut" to 10, "red" to 100, "extra" to "Extra"))
 
     @Suppress("UNCHECKED_CAST")
     private fun AtomicUpdateBuilder.stagedMutable(key: FieldKey): Int =
@@ -42,6 +46,12 @@ class BaseAtomicScopeTest : BehaviorSpec() {
             Then("the previous value of a reduced field reflects the source") {
                 TestScope(source()).reduced.previous shouldBe 100
             }
+            Then("a read-only lens field reflects the source values") {
+                TestScope(source()).staticLens.run {
+                    ro shouldBe 1
+                    extra shouldBe "Extra"
+                }
+            }
 
             When("the mutable value is written") {
                 Then("reading reflects the new value immediately") {
@@ -53,6 +63,12 @@ class BaseAtomicScopeTest : BehaviorSpec() {
                     val builder = AtomicUpdateBuilder()
                     TestScope(source(), builder).mutableValue = 20
                     builder.stagedMutable("mut") shouldBe 20
+                }
+                Then("the lens containing this field reflects the new value immediately") {
+                    val parent = TestScope(source())
+                    val lens = parent.nest { source, builder -> TestScope(source, builder) }
+                    parent.mutableValue = 30
+                    lens.mutableValue shouldBe 30
                 }
             }
 

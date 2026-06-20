@@ -17,11 +17,11 @@ import kotlin.coroutines.cancellation.CancellationException
  */
 @AsepticInternal
 internal class OperationInstance<Context : BaseAsepticContext<*, *>>(
-    val key: Any,
+    val key: OperationKey,
     private val operation: suspend Context.() -> Unit,
     parentScope: CoroutineScope,
     private val errorHandler: (Throwable) -> Unit,
-    private val cleanup: (OperationInstance<Context>) -> Unit
+    private val cleanup: (OperationInstance<Context>) -> Unit,
 ) {
 
     @Volatile
@@ -54,7 +54,10 @@ internal class OperationInstance<Context : BaseAsepticContext<*, *>>(
                 errorHandler(e)
             }
         }.apply {
-            invokeOnCompletion { cleanup(this@OperationInstance) }
+            invokeOnCompletion {
+                cleanup(this@OperationInstance)
+                instanceParentJob.complete()
+            }
         }
         job?.start()
     }

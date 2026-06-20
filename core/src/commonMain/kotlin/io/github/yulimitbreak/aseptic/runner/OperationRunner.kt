@@ -23,11 +23,10 @@ internal class OperationRunner<Context : BaseAsepticContext<*, *>>(
         coroutineScope.coroutineContext + SupervisorJob(parent = coroutineScope.coroutineContext[Job])
     )
 
-    var errorHandler: (Throwable) -> Unit = {
-        // TODO when logging implemented
-    }
+    @Volatile
+    var errorHandler: (Throwable) -> Unit = { throw it }
 
-    private val groups = mutableMapOf<Any, OperationGroup<Context>>()
+    private val groups = mutableMapOf<OperationKey, OperationGroup<Context>>()
 
     private val commandChannel = Channel<Command<Context>>(capacity = Channel.UNLIMITED).also { channel ->
         coroutineScope.launch {
@@ -55,8 +54,8 @@ internal class OperationRunner<Context : BaseAsepticContext<*, *>>(
      */
     fun dispatch(
         operation: suspend Context.() -> Unit,
-        key: Any,
         dispatchPolicy: DispatchPolicy,
+        key: OperationKey,
     ): OperationHandle {
         val instance = OperationInstance(
             key = key,
@@ -74,7 +73,7 @@ internal class OperationRunner<Context : BaseAsepticContext<*, *>>(
     }
 
     private fun sendCommand(
-        command: Command<Context>
+        command: Command<Context>,
     ) {
         commandChannel.trySend(command)
     }
@@ -83,7 +82,7 @@ internal class OperationRunner<Context : BaseAsepticContext<*, *>>(
 
         class Dispatch<Context : BaseAsepticContext<*, *>>(
             val operation: OperationInstance<Context>,
-            val policy: DispatchPolicy
+            val policy: DispatchPolicy,
         ) : Command<Context>
 
         class Cancel(val operation: OperationInstance<*>) : Command<Nothing>

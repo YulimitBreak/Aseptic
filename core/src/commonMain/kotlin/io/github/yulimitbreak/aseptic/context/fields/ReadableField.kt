@@ -8,11 +8,11 @@ import io.github.yulimitbreak.aseptic.state.FieldKey
 import io.github.yulimitbreak.aseptic.state.StateContainer
 
 /**
- * An accessor to a field declared in schema
+ * An accessor to a field declared in the schema
  */
 open class ReadableField<T> @AsepticInternal constructor(
     internal val key: FieldKey,
-    protected val container: StateContainer
+    protected val container: StateContainer,
 ) : FieldLockProperty {
 
     override val keys: Set<FieldKey> = setOf(key)

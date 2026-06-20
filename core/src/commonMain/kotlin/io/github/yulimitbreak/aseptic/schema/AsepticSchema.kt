@@ -18,7 +18,7 @@ import io.github.yulimitbreak.aseptic.schema.properties.LensPropertyDeclaration
  * Base class for Aseptic schema definitions.
  *
  * A schema declares the fields that make up a piece of state. Each field is a property
- * created via one of the protected factory methods below. The Aseptic KSP processor reads
+ * created via one of the protected factory methods in this class. The Aseptic KSP processor reads
  * the schema at compile time and generates an operation context (for operations to read and write state)
  * and a UI model class (for the UI to observe it).
  *
@@ -50,14 +50,20 @@ import io.github.yulimitbreak.aseptic.schema.properties.LensPropertyDeclaration
  *     val countPlusStep = derived(count) { it + step }
  * }
  * ```
+ *
+ * @see io.github.yulimitbreak.aseptic.Aseptic
  */
 
 abstract class AsepticSchema {
 
     /**
-     * Declares a mutable field with [initial] as its starting value.
+     * Declares a mutable value field with [initial] as its starting value.
      *
-     * The generated operation context exposes a typed setter for this field.
+     * `@Model` annotated mutable value fields:
+     * - Generate an [UpdatableField][io.github.yulimitbreak.aseptic.context.fields.UpdatableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate a mutable property in atomic scope
      *
      * ```kotlin
      * @Model
@@ -70,6 +76,12 @@ abstract class AsepticSchema {
      * Declares a read-only field computed from the value of one field.
      * Last computation is cached. Computation shouldn't have side effects and must depend only on
      * the source values or static values in the schema.
+     *
+     * `@Model` annotated derived fields:
+     * - Generate a [ReadableField][io.github.yulimitbreak.aseptic.context.fields.ReadableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate an immutable property in atomic scope
      *
      * ```kotlin
      *
@@ -89,6 +101,12 @@ abstract class AsepticSchema {
      * Declares a read-only field computed from two source fields.
      * Last computation is cached. Computation shouldn't have side effects and must depend only on
      * the source values or static values in the schema.
+     *
+     * `@Model` annotated derived fields:
+     * - Generate a [ReadableField][io.github.yulimitbreak.aseptic.context.fields.ReadableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate an immutable property in atomic scope
      *
      * ```kotlin
      * @Model
@@ -115,6 +133,12 @@ abstract class AsepticSchema {
      * Last computation is cached. Computation shouldn't have side effects and must depend only on
      * the source values or static values in the schema.
      *
+     * `@Model` annotated derived fields:
+     * - Generate a [ReadableField][io.github.yulimitbreak.aseptic.context.fields.ReadableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate an immutable property in atomic scope
+     *
      * ```kotlin
      * @Ui
      * val userCard = derived(firstName, lastName, age) { firstName, lastName, age ->
@@ -133,6 +157,12 @@ abstract class AsepticSchema {
      * Declares a read-only field computed from four or more source fields.
      * Last computation is cached. Computation shouldn't have side effects and must depend only on
      * the source values or static values in the schema.
+     *
+     * `@Model` annotated derived fields:
+     * - Generate a [ReadableField][io.github.yulimitbreak.aseptic.context.fields.ReadableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate an immutable property in atomic scope
      *
      * ```kotlin
      *
@@ -158,6 +188,12 @@ abstract class AsepticSchema {
      * The generated operation context exposes the `update` method that takes an update of type [U], and uses
      * [update] to apply it to the current state (starting with [initial]) to produce a new value
      *
+     * `@Model` annotated reduced fields:
+     * - Generate an [UpdatableField][io.github.yulimitbreak.aseptic.context.fields.UpdatableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate a special accessor in atomic scope
+     *
      * ```kotlin
      *
      * @Model
@@ -180,10 +216,17 @@ abstract class AsepticSchema {
      * Messages are stored as a queue under the hood, and need to be explicitly consumed one
      * by one
      *
-     * **Must be annotated with both `@Model` and `@Ui`** - message fields are always accessible
-     * from operations, and they have their own special way of being read on UI
+     * **Must be annotated with both `@Model` and `@Ui`**
      *
-     * Message fields cannot be read in the model, and cannot be depended on by other fields
+     * Message fields are always accessible from operations, and they have their own
+     * special way of being read on UI. Message fields cannot be read in the model,
+     * and cannot be depended on by other fields
+     *
+     * Message fields:
+     * - Generate a [MessageField][io.github.yulimitbreak.aseptic.context.fields.MessageField] accessor in
+     * the context class
+     * - Do *not* generate anything in snapshot
+     * - Do *not* generate anything in atomic scope
      *
      * ```kotlin
      *
@@ -192,16 +235,23 @@ abstract class AsepticSchema {
      * val navigation = message<NavigationEvent>()
      *
      * ```
+     * ```kotlin
+     * val navigation = state.navigation.flow
      *
-     * TODO update KDoc when we finalize a way to access them properly once processor is done
+     * fun onNavigationHandled() {
+     *      state.navigation.consume()
+     * }
+     * ```
      */
     protected fun <T : Any> message(): MessageFieldDeclaration<T> = MessageFieldDeclaration()
 
     /**
-     * Shorthand for declaring a `@Model`-annotated [mutable] field paired with a `@Ui`-annotated
+     * Shorthand for declaring a `@Model`-annotated [mutable] value field paired with a `@Ui`-annotated
      * [derived] field with the same name that transforms it.
      *
      * **Must be annotated with both `@Model` and `@Ui`**
+     *
+     * The resulting mutable value field generates the same accessors as a regular mutable value field
      *
      * ```kotlin
      *
@@ -215,7 +265,7 @@ abstract class AsepticSchema {
 
     /**
      * Declares a lens property that generates a data class (named after the schema member, unless
-     * [className] is specified) and an accessor for it on the generated XxxxContext that returns an
+     * [className] is specified) and an accessor for it on the generated `XxxxContext` that returns an
      * internally consistent instance.
      *
      * If any fields are [mutable], also creates a method to update the mutable fields atomically
@@ -224,6 +274,18 @@ abstract class AsepticSchema {
      * snapshots as a flow
      *
      * **Must be annotated with `@Model`, cannot be annotated with `@Ui`**
+     *
+     * Lenses without mutable value field dependencies:
+     * - Generate a [LensProperty][io.github.yulimitbreak.aseptic.context.properties.LensProperty] accessor in
+     * the context class
+     * - Generate a member of the lens class in the snapshot
+     * - Generate an instance of the lens in atomic scope
+     *
+     * Lenses with mutable value field dependencies:
+     * - Generate a [MutableLensProperty][io.github.yulimitbreak.aseptic.context.properties.MutableLensProperty]
+     * accessor in the context class
+     * - Generate a member of the lens class in the snapshot
+     * - Generate a nested atomic scope associated with this lens in global atomic scope
      *
      * ```kotlin
      *
@@ -252,7 +314,7 @@ abstract class AsepticSchema {
         first: FieldDeclaration<*>,
         second: FieldDeclaration<*>,
         vararg other: FieldDeclaration<*>,
-        className: String? = null
+        className: String? = null,
     ) =
         LensPropertyDeclaration
 
@@ -262,6 +324,12 @@ abstract class AsepticSchema {
      * Whenever [source] is written, [updateMapper] is called with the source's output value and
      * the result is applied as a write to this field.
      *
+     * `@Model` annotated tracking fields:
+     * - Generate a [ReadableField][io.github.yulimitbreak.aseptic.context.fields.ReadableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate an immutable property in atomic scope
+     *
      * ```kotlin
      * @Model
      * val articles = reduced<List<Article>, List<Article>>(emptyList()) { all, new -> all + new }
@@ -270,6 +338,10 @@ abstract class AsepticSchema {
      * val articleCards = reduced<List<ArticleCard>, List<ArticleCard>>(emptyList()) { cards, new -> cards + new }
      *     .tracking(articles) { newArticles -> newArticles.map { it.toCard() } }
      * ```
+     *
+     * **The tracking update is non-atomic**. After a non-atomic write to the source,
+     * snapshots and snapshot flows may briefly still show the tracking field's old value until
+     * the write completes
      */
     @Suppress("MaximumLineLength")
     protected fun <T, SourceUpdate, Update, TrackedUpdate> UpdatableFieldDeclaration<T, Update, TrackedUpdate>.tracking(
@@ -288,6 +360,12 @@ abstract class AsepticSchema {
      * directly as the update message (no mapping needed). Requires that the source's output type
      * matches this field's update type.
      *
+     * `@Model` annotated tracking fields:
+     * - Generate a [ReadableField][io.github.yulimitbreak.aseptic.context.fields.ReadableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate an immutable property in atomic scope
+     *
      * ```kotlin
      * @Model
      * val score = reduced<Int, Int>(0) { total, delta -> total + delta }
@@ -296,10 +374,14 @@ abstract class AsepticSchema {
      * val scoreHistory = reduced<List<Int>, Int>(emptyList()) { history, delta -> history + delta }
      *     .tracking(score)
      * ```
+     *
+     * **The tracking update is non-atomic**. After a non-atomic write to the source,
+     * snapshots and snapshot flows may briefly still show the tracking field's old value until
+     * the write completes
      */
     @Suppress("MaximumLineLength")
     protected fun <T, SourceUpdate, TrackedUpdate> UpdatableFieldDeclaration<T, SourceUpdate, TrackedUpdate>.tracking(
-        source: TrackableFieldDeclaration<*, *, SourceUpdate>
+        source: TrackableFieldDeclaration<*, *, SourceUpdate>,
     ) = TrackingFieldDeclaration(
         this,
         link = TrackingFieldDeclaration.Link(source) { it }
@@ -313,6 +395,12 @@ abstract class AsepticSchema {
      * new field value. This is a convenience overload that wraps the result in the transform
      * `(T) -> T` expected by [MutableValueFieldDeclaration].
      *
+     * `@Model` annotated tracking fields:
+     * - Generate a [ReadableField][io.github.yulimitbreak.aseptic.context.fields.ReadableField] accessor in
+     * the context class
+     * - Generate a member in the snapshot
+     * - Generate an immutable property in atomic scope
+     *
      * ```kotlin
      * @Model
      * val cartItems = reduced<List<Item>, Item>(emptyList()) { items, added -> items + added }
@@ -321,6 +409,10 @@ abstract class AsepticSchema {
      * val cartTotal = mutable(0.0)
      *     .tracking(cartItems) { currentTotal, addedItem -> currentTotal + addedItem.price }
      * ```
+     *
+     * **The tracking update is non-atomic**. After a non-atomic write to the source,
+     * snapshots and snapshot flows may briefly still show the tracking field's old value until
+     * the write completes
      */
     protected inline fun <T, SourceUpdate> MutableValueFieldDeclaration<T>.tracking(
         source: TrackableFieldDeclaration<*, *, SourceUpdate>,
